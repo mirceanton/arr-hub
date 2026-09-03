@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Grid2x2, Lock } from "lucide-react";
+import { Grid2x2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth/session";
 
@@ -72,17 +72,6 @@ export default async function LoginPage({
             <Grid2x2 className="size-4" />
             Continue with Keycloak
           </Button>
-
-          <div className="my-5 flex items-center gap-2.5 text-[11px] text-muted-foreground/70">
-            <div className="h-px flex-1 bg-border" />
-            OIDC via Keycloak
-            <div className="h-px flex-1 bg-border" />
-          </div>
-
-          <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-            <Lock className="size-3" />
-            No passwords stored by Arr Hub
-          </div>
         </div>
       </div>
     </div>
