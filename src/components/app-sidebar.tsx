@@ -14,6 +14,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { serviceAccent } from "@/lib/service-style";
@@ -42,16 +43,19 @@ export function AppSidebar({
     .toUpperCase();
 
   return (
-    <Sidebar>
+    <Sidebar collapsible="icon">
       <SidebarHeader>
-        <div className="flex items-center gap-2 px-2 py-1.5">
-          <div
-            className="flex size-7 items-center justify-center rounded-md text-sm font-bold text-white"
-            style={{ background: "linear-gradient(155deg,#8b5cf6,#6d28d9)" }}
-          >
-            A
+        <div className="flex items-center justify-between gap-2 px-2 py-1.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+          <div className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
+            <div
+              className="flex size-7 shrink-0 items-center justify-center rounded-md text-sm font-bold text-white"
+              style={{ background: "linear-gradient(155deg,#8b5cf6,#6d28d9)" }}
+            >
+              A
+            </div>
+            <span className="font-semibold tracking-tight">Arr Hub</span>
           </div>
-          <span className="font-semibold tracking-tight">Arr Hub</span>
+          <SidebarTrigger className="hidden md:flex" />
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -120,7 +124,7 @@ export function AppSidebar({
         )}
 
         {services.length > 0 && (
-          <SidebarGroup>
+          <SidebarGroup className="group-data-[collapsible=icon]:hidden">
             <SidebarGroupLabel>Services</SidebarGroupLabel>
             <SidebarGroupContent>
               <div className="flex flex-col gap-0.5 px-1">
@@ -149,17 +153,17 @@ export function AppSidebar({
         )}
       </SidebarContent>
       <SidebarFooter>
-        <div className="flex items-center justify-between gap-2 px-2 py-1.5">
+        <div className="flex items-center justify-between gap-2 px-2 py-1.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
           <div className="flex min-w-0 items-center gap-2">
-            <Avatar className="size-7">
+            <Avatar className="size-7 shrink-0">
               <AvatarFallback className="bg-primary/15 text-xs text-primary">{initials}</AvatarFallback>
             </Avatar>
-            <div className="min-w-0">
+            <div className="min-w-0 group-data-[collapsible=icon]:hidden">
               <p className="truncate text-sm font-medium">{user.displayName}</p>
               <p className="truncate text-xs text-muted-foreground">{user.email}</p>
             </div>
           </div>
-          <form action="/api/auth/logout" method="POST">
+          <form action="/api/auth/logout" method="POST" className="group-data-[collapsible=icon]:hidden">
             <button
               type="submit"
               className="text-xs text-muted-foreground hover:text-foreground hover:underline"
