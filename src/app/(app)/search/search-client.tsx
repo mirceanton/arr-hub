@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { serviceAccent } from "@/lib/service-style";
+import { mediaTypeLabel, serviceAccent } from "@/lib/service-style";
 import type { SearchResult } from "@/lib/services/types";
 
 interface ServiceOption {
@@ -91,14 +91,19 @@ export function SearchClient({ services }: { services: ServiceOption[] }) {
       <div>
         <h1 className="text-xl font-semibold tracking-tight">Search</h1>
         <p className="mt-0.5 text-[13px] text-muted-foreground">
-          Search a service and request what you want added.
+          Search and request what you want added.
         </p>
       </div>
 
       <form onSubmit={runSearch} className="flex flex-col gap-3 sm:flex-row">
         <Select value={service} onValueChange={(value) => value && setService(value)}>
           <SelectTrigger className="w-full sm:w-40">
-            <SelectValue placeholder="Service" />
+            <SelectValue placeholder="Type">
+              {(value: string) => {
+                const svc = services.find((s) => s.id === value);
+                return svc ? mediaTypeLabel(svc.mediaType) : "Type";
+              }}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {services.map((s) => (
@@ -108,7 +113,7 @@ export function SearchClient({ services }: { services: ServiceOption[] }) {
                     className="size-1.5 rounded-full"
                     style={{ background: serviceAccent(s.id) }}
                   />
-                  {s.label}
+                  {mediaTypeLabel(s.mediaType)}
                 </span>
               </SelectItem>
             ))}
@@ -119,7 +124,7 @@ export function SearchClient({ services }: { services: ServiceOption[] }) {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={`Search ${selected?.label ?? ""}...`}
+            placeholder={`Search ${selected ? mediaTypeLabel(selected.mediaType) : ""}...`}
             className="pl-9"
           />
         </div>
@@ -169,7 +174,7 @@ export function SearchClient({ services }: { services: ServiceOption[] }) {
                 <div className="px-3 py-2.5">
                   <div className="mb-0.5 truncate text-[12.5px] font-semibold">{result.title}</div>
                   <div className="mb-2 text-[11px] text-muted-foreground">
-                    {result.year ?? "—"} &middot; {selected?.label}
+                    {result.year ?? "—"} &middot; {selected ? mediaTypeLabel(selected.mediaType) : ""}
                   </div>
                   <p className="mb-2.5 line-clamp-3 text-[11.5px] text-muted-foreground/80">
                     {result.overview ?? "No overview available."}

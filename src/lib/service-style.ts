@@ -11,3 +11,15 @@ export const SERVICE_ACCENT: Record<ServiceId, string> = {
 export function serviceAccent(id: string): string {
   return SERVICE_ACCENT[id as ServiceId] ?? "#8b5cf6";
 }
+
+/** Human-friendly media type, for surfaces where regular users shouldn't need to know which *arr service handles what. */
+const MEDIA_TYPE_LABEL: Record<string, string> = {
+  series: "TV Shows",
+  movie: "Movies",
+  artist: "Music",
+  subtitles: "Subtitles",
+};
+
+export function mediaTypeLabel(mediaType: string): string {
+  return MEDIA_TYPE_LABEL[mediaType] ?? mediaType.charAt(0).toUpperCase() + mediaType.slice(1);
+}
