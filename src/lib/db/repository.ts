@@ -260,6 +260,36 @@ export async function listPendingRequests(services: string[]): Promise<RequestRe
   return rows.map(toRequestRecord);
 }
 
+export interface PendingRequestWithRequester extends RequestRecord {
+  requesterName: string;
+}
+
+/** Same as {@link listPendingRequests}, plus the requesting user's display name for the admin queue UI. */
+export async function listPendingRequestsWithRequester(
+  services: string[],
+): Promise<PendingRequestWithRequester[]> {
+  if (services.length === 0) return [];
+  const rows = await anyDb
+    .select({
+      id: s.requests.id,
+      userId: s.requests.userId,
+      service: s.requests.service,
+      externalId: s.requests.externalId,
+      title: s.requests.title,
+      mediaType: s.requests.mediaType,
+      status: s.requests.status,
+      requestedAt: s.requests.requestedAt,
+      decidedBy: s.requests.decidedBy,
+      decidedAt: s.requests.decidedAt,
+      requesterName: s.users.displayName,
+    })
+    .from(s.requests)
+    .innerJoin(s.users, eq(s.requests.userId, s.users.id))
+    .where(and(eq(s.requests.status, "pending" satisfies RequestStatus), inArray(s.requests.service, services)))
+    .orderBy(desc(s.requests.requestedAt));
+  return rows.map((row: any) => ({ ...toRequestRecord(row), requesterName: row.requesterName }));
+}
+
 export async function listRecentRequests(services: string[], limit: number): Promise<RequestRecord[]> {
   if (services.length === 0) return [];
   const rows = await anyDb

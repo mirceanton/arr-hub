@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { Search as SearchIcon } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { serviceAccent } from "@/lib/service-style";
 import type { SearchResult } from "@/lib/services/types";
 
 interface ServiceOption {
@@ -26,6 +25,7 @@ export function SearchClient({ services }: { services: ServiceOption[] }) {
   const [requestedIds, setRequestedIds] = useState<Set<string>>(new Set());
 
   const selected = services.find((s) => s.id === service);
+  const accent = serviceAccent(service);
 
   async function runSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -78,8 +78,8 @@ export function SearchClient({ services }: { services: ServiceOption[] }) {
   if (services.length === 0) {
     return (
       <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Search</h1>
-        <p className="text-muted-foreground text-sm">
+        <h1 className="text-xl font-semibold tracking-tight">Search</h1>
+        <p className="text-sm text-muted-foreground">
           You don&apos;t have view access to any searchable service yet.
         </p>
       </div>
@@ -89,8 +89,10 @@ export function SearchClient({ services }: { services: ServiceOption[] }) {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Search</h1>
-        <p className="text-muted-foreground text-sm">Search a service and request what you want added.</p>
+        <h1 className="text-xl font-semibold tracking-tight">Search</h1>
+        <p className="mt-0.5 text-[13px] text-muted-foreground">
+          Search a service and request what you want added.
+        </p>
       </div>
 
       <form onSubmit={runSearch} className="flex flex-col gap-3 sm:flex-row">
@@ -101,68 +103,91 @@ export function SearchClient({ services }: { services: ServiceOption[] }) {
           <SelectContent>
             {services.map((s) => (
               <SelectItem key={s.id} value={s.id}>
-                {s.label}
+                <span className="flex items-center gap-2">
+                  <span
+                    className="size-1.5 rounded-full"
+                    style={{ background: serviceAccent(s.id) }}
+                  />
+                  {s.label}
+                </span>
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={`Search ${selected?.label ?? ""}...`}
-          className="flex-1"
-        />
-        <Button type="submit" disabled={loading}>
+        <div className="relative flex-1">
+          <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={`Search ${selected?.label ?? ""}...`}
+            className="pl-9"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="h-8 shrink-0 rounded-lg px-4 text-sm font-semibold text-primary-foreground transition-colors disabled:opacity-50"
+          style={{ background: accent }}
+        >
           {loading ? "Searching…" : "Search"}
-        </Button>
+        </button>
       </form>
 
       {loading && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-40 w-full" />
+            <Skeleton key={i} className="h-52 w-full" />
           ))}
         </div>
       )}
 
       {!loading && results.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
           {results.map((result) => {
             const alreadyRequested = requestedIds.has(result.externalId);
+            const btnLabel = alreadyRequested
+              ? "Requested"
+              : requestingId === result.externalId
+                ? "Requesting…"
+                : selected?.canRequest
+                  ? "Request"
+                  : "No permission";
             return (
-              <Card key={result.externalId} className="flex flex-col">
-                <CardHeader>
-                  <CardTitle className="flex items-start justify-between gap-2 text-base">
-                    <span className="line-clamp-2">{result.title}</span>
-                    {result.year && (
-                      <Badge variant="secondary" className="shrink-0">
-                        {result.year}
-                      </Badge>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex-1">
-                  <p className="text-muted-foreground line-clamp-4 text-sm">
+              <div
+                key={result.externalId}
+                className="overflow-hidden rounded-[10px] border border-border bg-card"
+              >
+                <div
+                  className="flex aspect-[2/3] items-center justify-center p-3 text-center font-mono text-[10px]"
+                  style={{
+                    color: "rgba(255,255,255,.3)",
+                    backgroundImage: `repeating-linear-gradient(45deg, ${accent}22, ${accent}22 8px, rgba(255,255,255,.02) 8px, rgba(255,255,255,.02) 16px)`,
+                  }}
+                >
+                  poster art
+                </div>
+                <div className="px-3 py-2.5">
+                  <div className="mb-0.5 truncate text-[12.5px] font-semibold">{result.title}</div>
+                  <div className="mb-2 text-[11px] text-muted-foreground">
+                    {result.year ?? "—"} &middot; {selected?.label}
+                  </div>
+                  <p className="mb-2.5 line-clamp-3 text-[11.5px] text-muted-foreground/80">
                     {result.overview ?? "No overview available."}
                   </p>
-                </CardContent>
-                <CardFooter>
-                  <Button
-                    size="sm"
-                    className="w-full"
-                    disabled={!selected?.canRequest || alreadyRequested || requestingId === result.externalId}
+                  <button
                     onClick={() => requestItem(result)}
+                    disabled={!selected?.canRequest || alreadyRequested || requestingId === result.externalId}
+                    className="w-full rounded-md border py-1.5 text-[11.5px] font-semibold transition-colors disabled:cursor-not-allowed"
+                    style={
+                      alreadyRequested
+                        ? { background: "rgba(34,197,94,.12)", borderColor: "rgba(34,197,94,.3)", color: "#22c55e" }
+                        : { background: "transparent", borderColor: "rgba(255,255,255,.15)", color: "#fafafa" }
+                    }
                   >
-                    {alreadyRequested
-                      ? "Requested"
-                      : requestingId === result.externalId
-                        ? "Requesting…"
-                        : selected?.canRequest
-                          ? "Request"
-                          : "No permission"}
-                  </Button>
-                </CardFooter>
-              </Card>
+                    {btnLabel}
+                  </button>
+                </div>
+              </div>
             );
           })}
         </div>

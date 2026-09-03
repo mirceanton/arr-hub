@@ -4,7 +4,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { requireUser } from "@/lib/auth/session";
 import { can, pickHighestRole } from "@/lib/permissions";
 import * as repo from "@/lib/db/repository";
-import { getConfiguredServiceIds } from "@/lib/services/registry";
+import { getConfiguredServiceIds, getServiceStatuses } from "@/lib/services/registry";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
@@ -12,14 +12,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const isAdmin = pickHighestRole(roles) === "admin";
 
   const configuredServices = getConfiguredServiceIds();
-  const manageChecks = await Promise.all(
-    configuredServices.map((id) => can(user.id, id, "manage")),
-  );
+  const [manageChecks, services] = await Promise.all([
+    Promise.all(configuredServices.map((id) => can(user.id, id, "manage"))),
+    getServiceStatuses(),
+  ]);
   const canManageAny = manageChecks.some(Boolean);
 
   return (
     <SidebarProvider>
-      <AppSidebar user={user} isAdmin={isAdmin} canManageAny={canManageAny} />
+      <AppSidebar user={user} isAdmin={isAdmin} canManageAny={canManageAny} services={services} />
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />

@@ -3,7 +3,7 @@ import { BazarrClient } from "./bazarr/client";
 import { LidarrClient } from "./servarr/lidarr";
 import { RadarrClient } from "./servarr/radarr";
 import { SonarrClient } from "./servarr/sonarr";
-import type { MediaServiceClient } from "./types";
+import type { MediaServiceClient, ServiceHealth } from "./types";
 
 interface ServiceDefinition {
   id: ServiceId;
@@ -49,4 +49,17 @@ export function getServiceClient(id: ServiceId): MediaServiceClient | undefined 
 /** Services that support the search → request → approve workflow (i.e. declare `search` and `addItem`). */
 export function getRequestableServices(): MediaServiceClient[] {
   return [...serviceRegistry.values()].filter((c) => c.search && c.addItem);
+}
+
+export interface ServiceStatus {
+  id: ServiceId;
+  label: string;
+  health: ServiceHealth;
+}
+
+/** Health-checks every configured service. Shared by the dashboard and the sidebar's service list. */
+export async function getServiceStatuses(): Promise<ServiceStatus[]> {
+  const clients = [...serviceRegistry.values()];
+  const healths = await Promise.all(clients.map((c) => c.healthCheck()));
+  return clients.map((c, i) => ({ id: c.id, label: c.label, health: healths[i] }));
 }

@@ -23,6 +23,6 @@ export default async function AdminRequestsPage() {
     );
   }
 
-  const initialRequests = await repo.listPendingRequests(manageableServices);
+  const initialRequests = await repo.listPendingRequestsWithRequester(manageableServices);
   return <AdminRequestsClient initialRequests={initialRequests} />;
 }

@@ -22,6 +22,23 @@ interface ServiceOption {
 
 type OverrideState = "inherit" | "granted" | "denied";
 
+const AVATAR_COLORS = ["#8b5cf6", "#3b82f6", "#14b8a6", "#f97316", "#ec4899"];
+
+const ROLE_STYLE: Record<Role, { color: string; bg: string }> = {
+  admin: { color: "#8b5cf6", bg: "rgba(139,92,246,.12)" },
+  requester: { color: "#3b82f6", bg: "rgba(59,130,246,.12)" },
+  viewer: { color: "#a1a1aa", bg: "rgba(255,255,255,.08)" },
+};
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
 export function AdminUsersClient({
   services,
   initialUsers,
@@ -93,53 +110,72 @@ export function AdminUsersClient({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Users</h1>
-        <p className="text-muted-foreground text-sm">Manage roles and per-service permission overrides.</p>
+        <h1 className="text-xl font-semibold tracking-tight">Users & Permissions</h1>
+        <p className="mt-0.5 text-[13px] text-muted-foreground">
+          Manage household access per service.
+        </p>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>User</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead className="text-right">Permissions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {users.map((u) => (
-            <TableRow key={u.id}>
-              <TableCell>
-                <div className="flex flex-col">
-                  <span className="font-medium">{u.displayName}</span>
-                  <span className="text-muted-foreground text-xs">{u.email}</span>
-                </div>
-              </TableCell>
-              <TableCell>
-                <Select
-                  value={u.roles[0] ?? "viewer"}
-                  onValueChange={(role) => role && changeRole(u.id, role as Role)}
-                >
-                  <SelectTrigger className="w-36">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ROLES.map((r) => (
-                      <SelectItem key={r} value={r} className="capitalize">
-                        {r}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </TableCell>
-              <TableCell className="text-right">
-                <Button size="sm" variant="outline" onClick={() => openPermissions(u)}>
-                  Permissions
-                </Button>
-              </TableCell>
+      <div className="overflow-hidden rounded-[10px] border border-border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead>User</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead className="text-right">Permissions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {users.map((u, i) => {
+              const role = u.roles[0] ?? "viewer";
+              const style = ROLE_STYLE[role];
+              return (
+                <TableRow key={u.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className="flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white"
+                        style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length] }}
+                      >
+                        {initials(u.displayName)}
+                      </span>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{u.displayName}</span>
+                        <span className="text-xs text-muted-foreground">{u.email}</span>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Select
+                      value={role}
+                      onValueChange={(value) => value && changeRole(u.id, value as Role)}
+                    >
+                      <SelectTrigger
+                        className="w-36 border-transparent font-semibold capitalize"
+                        style={{ color: style.color, background: style.bg }}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ROLES.map((r) => (
+                          <SelectItem key={r} value={r} className="capitalize">
+                            {r}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button size="sm" variant="outline" onClick={() => openPermissions(u)}>
+                      Permissions
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
 
       <Dialog
         open={permUser !== null}
@@ -159,7 +195,7 @@ export function AdminUsersClient({
             </DialogDescription>
           </DialogHeader>
           {overrides === null ? (
-            <p className="text-muted-foreground text-sm">Loading…</p>
+            <p className="text-sm text-muted-foreground">Loading…</p>
           ) : (
             <div className="flex flex-col gap-4">
               {services.map((s) => (
@@ -172,7 +208,7 @@ export function AdminUsersClient({
                         key in overrides ? (overrides[key] ? "granted" : "denied") : "inherit";
                       return (
                         <div key={action} className="flex flex-col gap-1">
-                          <span className="text-muted-foreground text-xs capitalize">{action}</span>
+                          <span className="text-xs text-muted-foreground capitalize">{action}</span>
                           <Select
                             value={current}
                             onValueChange={(value) => value && setOverride(s.id, action, value as OverrideState)}

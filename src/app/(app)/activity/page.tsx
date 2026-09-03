@@ -1,7 +1,7 @@
-import { Badge } from "@/components/ui/badge";
 import { requireUser } from "@/lib/auth/session";
 import { can } from "@/lib/permissions";
 import * as repo from "@/lib/db/repository";
+import { serviceAccent } from "@/lib/service-style";
 import type { RequestRecord, ServiceEventRecord } from "@/lib/db/models";
 import { getConfiguredServiceIds } from "@/lib/services/registry";
 
@@ -43,37 +43,44 @@ export default async function ActivityPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Activity</h1>
-        <p className="text-muted-foreground text-sm">
+        <h1 className="text-xl font-semibold tracking-tight">Activity</h1>
+        <p className="mt-0.5 text-[13px] text-muted-foreground">
           Requests and service events across every service you can see, newest first.
         </p>
       </div>
 
       {feed.length === 0 ? (
-        <p className="text-muted-foreground text-sm">Nothing has happened yet.</p>
+        <p className="text-sm text-muted-foreground">Nothing has happened yet.</p>
       ) : (
-        <ul className="flex flex-col gap-3">
-          {feed.map((entry) => (
-            <li
-              key={`${entry.kind}-${entry.data.id}`}
-              className="flex items-center justify-between gap-4 rounded-lg border p-3"
-            >
-              <div className="flex items-center gap-3">
-                <Badge variant="secondary" className="shrink-0 capitalize">
-                  {entry.data.service}
-                </Badge>
-                <p className="text-sm">
-                  {entry.kind === "request"
-                    ? describeRequest(entry.data)
-                    : `${entry.data.eventType} event received`}
-                </p>
+        <div className="relative pl-5">
+          <div className="absolute top-1.5 bottom-1.5 left-[5px] w-px bg-border" />
+          {feed.map((entry) => {
+            const accent = serviceAccent(entry.data.service);
+            const kind = entry.kind === "request" ? entry.data.status.toUpperCase() : entry.data.eventType.toUpperCase();
+            const message =
+              entry.kind === "request" ? describeRequest(entry.data) : `${entry.data.eventType} event received`;
+            return (
+              <div key={`${entry.kind}-${entry.data.id}`} className="relative pb-5">
+                <span
+                  className="absolute top-[3px] -left-5 size-2.5 rounded-full border-2 bg-[#0c0c0e]"
+                  style={{ borderColor: accent }}
+                />
+                <div className="mb-0.5 flex flex-wrap items-baseline gap-2">
+                  <span
+                    className="rounded-[5px] px-1.5 py-0.5 text-[10.5px] font-semibold"
+                    style={{ color: accent, background: `${accent}1f` }}
+                  >
+                    {kind}
+                  </span>
+                  <span className="font-mono text-xs text-muted-foreground/70">
+                    {entry.at.toLocaleString()}
+                  </span>
+                </div>
+                <div className="text-[13px] text-foreground/85">{message}</div>
               </div>
-              <span className="text-muted-foreground shrink-0 text-xs">
-                {entry.at.toLocaleString()}
-              </span>
-            </li>
-          ))}
-        </ul>
+            );
+          })}
+        </div>
       )}
     </div>
   );
