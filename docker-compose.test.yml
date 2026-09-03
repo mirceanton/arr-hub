@@ -1,0 +1,90 @@
+# Integration-test stack for arr-hub.
+# Brings up real Sonarr/Radarr/Lidarr/Bazarr, Keycloak, and Postgres containers
+# so the app can be integration-tested against real APIs instead of mocks.
+#
+# Usage:
+#   docker compose -f docker-compose.test.yml up -d
+#
+# See docker-compose.test.md for how to retrieve API keys / credentials
+# and for a ready-to-copy .env.test template.
+
+services:
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: arr-hub-test-sonarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+    volumes:
+      - sonarr_config:/config
+    ports:
+      - "8989:8989"
+    restart: unless-stopped
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: arr-hub-test-radarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+    volumes:
+      - radarr_config:/config
+    ports:
+      - "7878:7878"
+    restart: unless-stopped
+
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:latest
+    container_name: arr-hub-test-lidarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+    volumes:
+      - lidarr_config:/config
+    ports:
+      - "8686:8686"
+    restart: unless-stopped
+
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: arr-hub-test-bazarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+    volumes:
+      - bazarr_config:/config
+    ports:
+      - "6767:6767"
+    restart: unless-stopped
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: arr-hub-test-keycloak
+    command: start-dev
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16
+    container_name: arr-hub-test-postgres
+    environment:
+      - POSTGRES_USER=arrhub
+      - POSTGRES_PASSWORD=arrhub
+      - POSTGRES_DB=arrhub
+    ports:
+      - "5433:5432"
+    restart: unless-stopped
+
+volumes:
+  sonarr_config:
+  radarr_config:
+  lidarr_config:
+  bazarr_config:
