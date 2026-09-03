@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getServiceEnvConfig } from "@/env";
 import { BazarrClient } from "@/lib/services/bazarr/client";
+import { ProwlarrClient } from "@/lib/services/prowlarr/client";
 import { LidarrClient } from "@/lib/services/servarr/lidarr";
 import { RadarrClient } from "@/lib/services/servarr/radarr";
 import { SonarrClient } from "@/lib/services/servarr/sonarr";
@@ -10,6 +11,7 @@ const sonarrConfig = getServiceEnvConfig("sonarr");
 const radarrConfig = getServiceEnvConfig("radarr");
 const lidarrConfig = getServiceEnvConfig("lidarr");
 const bazarrConfig = getServiceEnvConfig("bazarr");
+const prowlarrConfig = getServiceEnvConfig("prowlarr");
 
 describe.skipIf(!sonarrConfig)("SonarrClient (live)", () => {
   const client = new SonarrClient(sonarrConfig!);
@@ -186,5 +188,23 @@ describe.skipIf(!bazarrConfig)("BazarrClient (live, non-v3 API shape)", () => {
     const badges = await client.getBadges();
     expect(typeof badges.episodes).toBe("number");
     expect(typeof badges.sonarrSignalr).toBe("string");
+  });
+});
+
+describe.skipIf(!prowlarrConfig)("ProwlarrClient (live, /api/v1)", () => {
+  const client = new ProwlarrClient(prowlarrConfig!);
+
+  it("reports up with a version", async () => {
+    const health = await client.healthCheck();
+    expect(health.status).toBe("up");
+    expect(health.version).toBeTruthy();
+  });
+
+  it("returns no indexers on a fresh instance", async () => {
+    await expect(client.getIndexers()).resolves.toEqual([]);
+  });
+
+  it("returns no grab history on a fresh instance", async () => {
+    await expect(client.getHistory()).resolves.toEqual([]);
   });
 });

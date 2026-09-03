@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, LayoutDashboard, ListChecks, Search, ShieldCheck, Users } from "lucide-react";
+import { Activity, LayoutDashboard, ListChecks, Radar, Search, ShieldCheck, Users } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -25,11 +25,13 @@ export function AppSidebar({
   user,
   isAdmin,
   canManageAny,
+  canViewIndexers,
   services,
 }: {
   user: UserRecord;
   isAdmin: boolean;
   canManageAny: boolean;
+  canViewIndexers: boolean;
   services: ServiceStatus[];
 }) {
   const pathname = usePathname();
@@ -87,6 +89,14 @@ export function AppSidebar({
                   <span>Activity</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              {canViewIndexers && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton render={<Link href="/indexers" />} isActive={isActive("/indexers")}>
+                    <Radar />
+                    <span>Indexers</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

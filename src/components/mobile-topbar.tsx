@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, ShieldCheck, Users } from "lucide-react";
+import { LogOut, Radar, ShieldCheck, Users } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,10 +16,12 @@ export function MobileTopBar({
   user,
   isAdmin,
   canManageAny,
+  canViewIndexers,
 }: {
   user: UserRecord;
   isAdmin: boolean;
   canManageAny: boolean;
+  canViewIndexers: boolean;
 }) {
   const initials = user.displayName
     .split(" ")
@@ -54,9 +56,15 @@ export function MobileTopBar({
             <p className="truncate text-xs text-muted-foreground">{user.email}</p>
           </div>
 
-          {hasAdminItems && (
+          {(canViewIndexers || hasAdminItems) && (
             <>
               <DropdownMenuSeparator />
+              {canViewIndexers && (
+                <DropdownMenuItem render={<Link href="/indexers" />}>
+                  <Radar className="size-4" />
+                  Indexers
+                </DropdownMenuItem>
+              )}
               {canManageAny && (
                 <DropdownMenuItem render={<Link href="/admin/requests" />}>
                   <ShieldCheck className="size-4" />

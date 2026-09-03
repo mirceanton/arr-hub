@@ -20,6 +20,7 @@ intend to tear the stack down and re-derive keys/credentials below.
 | Radarr   | `arr-hub-test-radarr`   | `lscr.io/linuxserver/radarr:latest`       | 7878      | `radarr_config`  |
 | Lidarr   | `arr-hub-test-lidarr`   | `lscr.io/linuxserver/lidarr:latest`       | 8686      | `lidarr_config`  |
 | Bazarr   | `arr-hub-test-bazarr`   | `lscr.io/linuxserver/bazarr:latest`       | 6767      | `bazarr_config`  |
+| Prowlarr | `arr-hub-test-prowlarr` | `ghcr.io/home-operations/prowlarr:2.6.3.5592` | 9696  | `prowlarr_config` |
 | Keycloak | `arr-hub-test-keycloak` | `quay.io/keycloak/keycloak:latest`        | 8080      | n/a (dev mode, in-memory H2) |
 | Postgres | `arr-hub-test-postgres` | `postgres:16`                             | 5433 → 5432 in-container | n/a (named-volume-free; ephemeral container storage) |
 
@@ -121,6 +122,59 @@ curl -s -H "X-Api-Key: c027d3342e667929be9908ecfcfa69c9" http://localhost:6767/a
 Bazarr's client in the app should NOT reuse the Sonarr/Radarr/Lidarr HTTP client
 as-is — at minimum, the base path (no `/v3`) and response envelope (`data.*`,
 snake_case) need their own parsing.
+
+### Prowlarr
+
+Runs `ghcr.io/home-operations/prowlarr:2.6.3.5592` (not the linuxserver image the
+other four use — a specific tag was requested for this one). Config path and API
+key retrieval work the same as Sonarr/Radarr/Lidarr:
+
+```sh
+docker exec arr-hub-test-prowlarr cat /config/config.xml   # <ApiKey>...</ApiKey>
+```
+
+Key extracted this session: `a968a3b2f54645679dca0c9d7c81083e`
+
+**Gotcha (this environment specifically, not Prowlarr):** `docker pull` hung
+indefinitely on `error getting credentials` — Docker's `credsStore: desktop` in
+`~/.docker/config.json` blocks on a credential-helper lookup that never returns in
+this sandbox, for any registry, not just `ghcr.io`. Worked around by pulling with an
+empty scoped config: `docker --config <empty-dir-with-{}-config.json> pull <image>`.
+The image lands in the same shared daemon, so `docker compose up` afterwards uses it
+from cache without needing to pull again.
+
+**API shape:** same family as Sonarr/Radarr/Lidarr — `/api/v1`, `X-Api-Key` header,
+`/system/status` shape identical (has `version`). Verified live:
+
+```sh
+curl -s -H "X-Api-Key: a968a3b2f54645679dca0c9d7c81083e" http://localhost:9696/api/v1/system/status
+# {"appName":"Prowlarr","version":"2.6.3.5592", ...}
+
+curl -s -H "X-Api-Key: a968a3b2f54645679dca0c9d7c81083e" http://localhost:9696/api/v1/indexer
+# [] on a fresh instance — plain array, not wrapped
+
+curl -s -H "X-Api-Key: a968a3b2f54645679dca0c9d7c81083e" http://localhost:9696/api/v1/indexerstatus
+# [] on a fresh instance — plain array
+
+curl -s -H "X-Api-Key: a968a3b2f54645679dca0c9d7c81083e" http://localhost:9696/api/v1/history
+# {"page":1,"pageSize":10,"sortKey":"date","sortDirection":"descending","totalRecords":0,"records":[]}
+# — paginated envelope, same shape as Sonarr/Radarr's own /history endpoint
+```
+
+`/indexer` field names (`id`, `name`, `protocol`, `privacy`, `enable`, `priority`,
+...) were confirmed via `GET /api/v1/indexer/schema`, which returns all 623 built-in
+indexer definitions Prowlarr ships with (useful when the instance itself has none
+configured yet).
+
+**Not independently verified:** populated-record shape for `/indexerstatus`
+(`indexerId`, `disabledTill`, ...) and `/history` records (`indexerId`, `indexer`,
+`title`, `date`, `eventType`, `successful`). This sandbox has no outbound internet,
+so saving a real indexer (tried the public "1337x" definition) fails Prowlarr's
+connectivity check on save even with `?forceSave=true` — there was never a populated
+record to inspect. The shapes used in the app's client are Prowlarr's stable
+documented API; re-verify against a real populated instance before depending on any
+field beyond what's currently used (`indexerId`/`disabledTill` and
+`indexer`/`title`/`date`/`eventType`/`successful`).
 
 ### Keycloak
 
@@ -229,6 +283,9 @@ LIDARR_API_KEY=f421a088907643af9e5a37f2e5e3017f
 
 BAZARR_URL=http://localhost:6767
 BAZARR_API_KEY=c027d3342e667929be9908ecfcfa69c9
+
+PROWLARR_URL=http://localhost:9696
+PROWLARR_API_KEY=a968a3b2f54645679dca0c9d7c81083e
 
 OIDC_ISSUER_URL=http://localhost:8080/realms/homelab
 OIDC_CLIENT_ID=arr-hub

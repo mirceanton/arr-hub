@@ -6,6 +6,7 @@ export const SERVICE_ACCENT: Record<ServiceId, string> = {
   radarr: "#f97316",
   bazarr: "#a855f7",
   lidarr: "#14b8a6",
+  prowlarr: "#ec4899",
 };
 
 export function serviceAccent(id: string): string {
@@ -18,6 +19,7 @@ const MEDIA_TYPE_LABEL: Record<string, string> = {
   movie: "Movies",
   artist: "Music",
   subtitles: "Subtitles",
+  indexers: "Indexers",
 };
 
 export function mediaTypeLabel(mediaType: string): string {

@@ -32,13 +32,38 @@ export interface CalendarItem {
   mediaType: string;
 }
 
+export interface IndexerStatus {
+  id: string;
+  name: string;
+  protocol: "torrent" | "usenet";
+  privacy: string;
+  enabled: boolean;
+  priority: number;
+  /** false when disabled, or currently in a Prowlarr-imposed backoff after repeated failures. */
+  healthy: boolean;
+  /** ISO 8601 string, or null when not currently backed off. */
+  disabledTill: string | null;
+}
+
+export interface GrabHistoryItem {
+  id: string;
+  indexerName: string;
+  title: string;
+  /** ISO 8601 date/time string. */
+  date: string;
+  eventType: string;
+  successful: boolean;
+}
+
 /**
  * The contract every media service client implements. Only `id`/`label`/
  * `mediaType`/`healthCheck` are required — the rest are optional because not
  * every service supports every capability (Bazarr manages subtitles for
  * items that already exist in Sonarr/Radarr; it has nothing to "search" or
- * "add"). The request/approve workflow and the unified search page only
- * call the optional methods on clients that declare them.
+ * "add". Prowlarr manages indexers, not library items; it has nothing to
+ * queue or calendar, but does have indexer status + grab history). The
+ * request/approve workflow and the unified search page only call the
+ * optional methods on clients that declare them.
  *
  * To add a new service: implement this interface and register one entry in
  * `registry.ts`'s SERVICE_DEFINITIONS — nothing else in the app changes.
@@ -52,4 +77,6 @@ export interface MediaServiceClient {
   addItem?(externalId: string): Promise<void>;
   getQueue?(): Promise<QueueItem[]>;
   getCalendar?(start: Date, end: Date): Promise<CalendarItem[]>;
+  getIndexers?(): Promise<IndexerStatus[]>;
+  getHistory?(limit?: number): Promise<GrabHistoryItem[]>;
 }

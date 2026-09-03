@@ -6,7 +6,7 @@ import { z } from "zod";
  * array plus a client implementation under `lib/services/` — nothing else
  * in this file needs to change.
  */
-export const SERVICE_IDS = ["sonarr", "radarr", "lidarr", "bazarr"] as const;
+export const SERVICE_IDS = ["sonarr", "radarr", "lidarr", "bazarr", "prowlarr"] as const;
 export type ServiceId = (typeof SERVICE_IDS)[number];
 
 function serviceEnvShape() {

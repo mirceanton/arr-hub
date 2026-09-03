@@ -61,6 +61,19 @@ services:
       - "6767:6767"
     restart: unless-stopped
 
+  prowlarr:
+    image: ghcr.io/home-operations/prowlarr:2.6.3.5592
+    container_name: arr-hub-test-prowlarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+    volumes:
+      - prowlarr_config:/config
+    ports:
+      - "9696:9696"
+    restart: unless-stopped
+
   keycloak:
     image: quay.io/keycloak/keycloak:latest
     container_name: arr-hub-test-keycloak
@@ -88,3 +101,4 @@ volumes:
   radarr_config:
   lidarr_config:
   bazarr_config:
+  prowlarr_config:

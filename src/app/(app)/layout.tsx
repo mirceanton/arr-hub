@@ -13,17 +13,31 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const isAdmin = pickHighestRole(roles) === "admin";
 
   const configuredServices = getConfiguredServiceIds();
-  const [manageChecks, services] = await Promise.all([
+  const prowlarrConfigured = configuredServices.includes("prowlarr");
+  const [manageChecks, services, canViewIndexersRaw] = await Promise.all([
     Promise.all(configuredServices.map((id) => can(user.id, id, "manage"))),
     getServiceStatuses(),
+    prowlarrConfigured ? can(user.id, "prowlarr", "view") : Promise.resolve(false),
   ]);
   const canManageAny = manageChecks.some(Boolean);
+  const canViewIndexers = prowlarrConfigured && canViewIndexersRaw;
 
   return (
     <SidebarProvider>
-      <AppSidebar user={user} isAdmin={isAdmin} canManageAny={canManageAny} services={services} />
+      <AppSidebar
+        user={user}
+        isAdmin={isAdmin}
+        canManageAny={canManageAny}
+        canViewIndexers={canViewIndexers}
+        services={services}
+      />
       <SidebarInset>
-        <MobileTopBar user={user} isAdmin={isAdmin} canManageAny={canManageAny} />
+        <MobileTopBar
+          user={user}
+          isAdmin={isAdmin}
+          canManageAny={canManageAny}
+          canViewIndexers={canViewIndexers}
+        />
         <div className="flex flex-1 flex-col gap-4 px-4 pt-4 pb-24 md:px-6 md:pt-6 md:pb-6">{children}</div>
         <MobileBottomNav />
       </SidebarInset>

@@ -1,5 +1,6 @@
 import { getServiceEnvConfig, SERVICE_IDS, type ServiceId } from "@/env";
 import { BazarrClient } from "./bazarr/client";
+import { ProwlarrClient } from "./prowlarr/client";
 import { LidarrClient } from "./servarr/lidarr";
 import { RadarrClient } from "./servarr/radarr";
 import { SonarrClient } from "./servarr/sonarr";
@@ -24,6 +25,7 @@ const SERVICE_DEFINITIONS: ServiceDefinition[] = [
   { id: "radarr", label: "Radarr", mediaType: "movie", createClient: (c) => new RadarrClient(c) },
   { id: "lidarr", label: "Lidarr", mediaType: "artist", createClient: (c) => new LidarrClient(c) },
   { id: "bazarr", label: "Bazarr", mediaType: "subtitles", createClient: (c) => new BazarrClient(c) },
+  { id: "prowlarr", label: "Prowlarr", mediaType: "indexers", createClient: (c) => new ProwlarrClient(c) },
 ];
 
 function buildRegistry(): Map<ServiceId, MediaServiceClient> {
