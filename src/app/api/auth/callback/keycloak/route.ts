@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import * as client from "openid-client";
+import { env } from "@/env";
 import { createSessionCookie } from "@/lib/auth/session";
 import { appOrigin, getOidcConfig } from "@/lib/auth/oidc";
 import { provisionUserFromClaims } from "@/lib/auth/provision";
@@ -25,9 +26,15 @@ export async function GET(request: NextRequest) {
 
   const config = await getOidcConfig();
 
+  // openid-client derives the redirect_uri it sends to the token endpoint by stripping
+  // query params off this URL — it must equal OIDC_REDIRECT_URI exactly (what Keycloak has
+  // on file from the authorization request), not request.url's possibly-proxy-mangled host.
+  const callbackUrl = new URL(env.OIDC_REDIRECT_URI);
+  callbackUrl.search = new URL(request.url).search;
+
   let tokens: Awaited<ReturnType<typeof client.authorizationCodeGrant>>;
   try {
-    tokens = await client.authorizationCodeGrant(config, new URL(request.url), {
+    tokens = await client.authorizationCodeGrant(config, callbackUrl, {
       pkceCodeVerifier: codeVerifier,
       expectedState,
     });
