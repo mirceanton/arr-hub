@@ -30,6 +30,8 @@ jobs:
         run: mise exec -- npm ci
       - name: Run lint
         run: mise exec -- npm run lint
+      - name: Generate Next.js route types
+        run: mise exec -- npx next typegen
       - name: Typecheck
         run: mise exec -- npx tsc --noEmit
       - name: Check formatting
