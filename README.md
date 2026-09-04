@@ -6,6 +6,13 @@ UI. Non-admins search and request; admins approve and manage. Built for a
 household/homelab, not as a product — plain env-var config, no admin-UI
 service wiring, no feature flags.
 
+> [!WARNING]
+> **AI Slop / Vibe Coded Project** — This project was "built" with heavy AI
+> assistance to scratch a personal itch. The code works for my use case, but
+> it has not been hardened, audited, or battle-tested. Deploy at your own
+> risk, preferably not exposed to the open internet. No warranties, no
+> support guarantees, no promises.
+
 ## Stack
 
 - **Next.js** (App Router) — one process, API routes as the backend-for-frontend.
