@@ -28,6 +28,7 @@ const rawSchema = z
     DATABASE_URL: z
       .string()
       .min(1, "DATABASE_URL is required (file:./data/app.db or postgres://...)"),
+    APP_TITLE: z.string().min(1).default("Arr Hub"),
     SESSION_SECRET: z
       .string()
       .min(32, "SESSION_SECRET must be at least 32 characters"),

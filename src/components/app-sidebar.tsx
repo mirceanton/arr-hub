@@ -27,12 +27,14 @@ export function AppSidebar({
   canManageAny,
   canViewIndexers,
   services,
+  appTitle,
 }: {
   user: UserRecord;
   isAdmin: boolean;
   canManageAny: boolean;
   canViewIndexers: boolean;
   services: ServiceStatus[];
+  appTitle: string;
 }) {
   const pathname = usePathname();
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
@@ -53,9 +55,9 @@ export function AppSidebar({
               className="flex size-7 shrink-0 items-center justify-center rounded-md text-sm font-bold text-white"
               style={{ background: "linear-gradient(155deg,#8b5cf6,#6d28d9)" }}
             >
-              A
+              {appTitle.charAt(0).toUpperCase()}
             </div>
-            <span className="font-semibold tracking-tight">Arr Hub</span>
+            <span className="font-semibold tracking-tight">{appTitle}</span>
           </div>
           <SidebarTrigger className="hidden md:flex" />
         </div>
