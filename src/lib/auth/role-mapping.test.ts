@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveDefaultRoleFromGroups } from "./role-mapping";
+import { matchRoleFromGroups, resolveDefaultRoleFromGroups } from "./role-mapping";
 
 describe("resolveDefaultRoleFromGroups", () => {
   it("maps a known group (with leading slash, as Keycloak's full-path mapper sends it)", () => {
@@ -18,5 +18,17 @@ describe("resolveDefaultRoleFromGroups", () => {
 
   it("uses the first matching group when a user is in several", () => {
     expect(resolveDefaultRoleFromGroups(["/some-other-group", "/arr-admin"])).toBe("admin");
+  });
+});
+
+describe("matchRoleFromGroups", () => {
+  it("returns the matched role, same matching rules as resolveDefaultRoleFromGroups", () => {
+    expect(matchRoleFromGroups(["/arr-viewer"])).toBe("viewer");
+    expect(matchRoleFromGroups(["Arr-Requester"])).toBe("requester");
+  });
+
+  it("returns null (not a fallback) when no group matches or the list is empty", () => {
+    expect(matchRoleFromGroups([])).toBeNull();
+    expect(matchRoleFromGroups(["/some-other-group"])).toBeNull();
   });
 });
