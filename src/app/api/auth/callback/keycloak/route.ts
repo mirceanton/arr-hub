@@ -2,12 +2,12 @@ import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import * as client from "openid-client";
 import { createSessionCookie } from "@/lib/auth/session";
-import { getOidcConfig } from "@/lib/auth/oidc";
+import { appOrigin, getOidcConfig } from "@/lib/auth/oidc";
 import { provisionUserFromClaims } from "@/lib/auth/provision";
 import { logger } from "@/lib/logger";
 
-function loginError(request: NextRequest, code: string) {
-  const url = new URL("/login", request.url);
+function loginError(code: string) {
+  const url = new URL("/login", appOrigin);
   url.searchParams.set("error", code);
   return NextResponse.redirect(url);
 }
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
   store.delete("oidc_state");
 
   if (!codeVerifier || !expectedState) {
-    return loginError(request, "missing_state");
+    return loginError("missing_state");
   }
 
   const config = await getOidcConfig();
@@ -33,11 +33,11 @@ export async function GET(request: NextRequest) {
     });
   } catch (err) {
     logger.warn({ err }, "OIDC authorization code grant failed");
-    return loginError(request, "oidc_failed");
+    return loginError("oidc_failed");
   }
 
   const claims = tokens.claims();
-  if (!claims) return loginError(request, "no_id_token");
+  if (!claims) return loginError("no_id_token");
 
   const user = await provisionUserFromClaims({
     sub: claims.sub,
@@ -50,5 +50,5 @@ export async function GET(request: NextRequest) {
   logger.info({ userId: user.id, subject: claims.sub }, "OIDC login");
 
   await createSessionCookie(user.id);
-  return NextResponse.redirect(new URL("/", request.url));
+  return NextResponse.redirect(new URL("/", appOrigin));
 }
