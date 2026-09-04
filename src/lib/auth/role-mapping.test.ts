@@ -3,12 +3,12 @@ import { resolveDefaultRoleFromGroups } from "./role-mapping";
 
 describe("resolveDefaultRoleFromGroups", () => {
   it("maps a known group (with leading slash, as Keycloak's full-path mapper sends it)", () => {
-    expect(resolveDefaultRoleFromGroups(["/admins"])).toBe("admin");
-    expect(resolveDefaultRoleFromGroups(["/requesters"])).toBe("requester");
+    expect(resolveDefaultRoleFromGroups(["/arr-admin"])).toBe("admin");
+    expect(resolveDefaultRoleFromGroups(["/arr-requester"])).toBe("requester");
   });
 
   it("matches case-insensitively and without a leading slash", () => {
-    expect(resolveDefaultRoleFromGroups(["Admins"])).toBe("admin");
+    expect(resolveDefaultRoleFromGroups(["Arr-Admin"])).toBe("admin");
   });
 
   it("falls back to viewer when no group matches or the list is empty", () => {
@@ -17,6 +17,6 @@ describe("resolveDefaultRoleFromGroups", () => {
   });
 
   it("uses the first matching group when a user is in several", () => {
-    expect(resolveDefaultRoleFromGroups(["/some-other-group", "/admins"])).toBe("admin");
+    expect(resolveDefaultRoleFromGroups(["/some-other-group", "/arr-admin"])).toBe("admin");
   });
 });

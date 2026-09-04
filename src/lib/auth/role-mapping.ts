@@ -9,9 +9,9 @@ import type { Role } from "@/lib/db/models";
  * mappers don't).
  */
 const GROUP_ROLE_MAP: Record<string, Role> = {
-  admins: "admin",
-  requesters: "requester",
-  viewers: "viewer",
+  "arr-admin": "admin",
+  "arr-requester": "requester",
+  "arr-viewer": "viewer",
 };
 
 /** Role assigned to a new user whose groups don't match anything in GROUP_ROLE_MAP. */

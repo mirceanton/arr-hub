@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Grid2x2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { env } from "@/env";
 import { getCurrentUser } from "@/lib/auth/session";
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -44,9 +45,9 @@ export default async function LoginPage({
             className="flex size-9 items-center justify-center rounded-[9px] text-base font-bold text-white"
             style={{ background: "linear-gradient(155deg,#8b5cf6,#6d28d9)" }}
           >
-            A
+            {env.APP_TITLE.charAt(0).toUpperCase()}
           </div>
-          <span className="text-[19px] font-semibold tracking-tight text-foreground">Arr Hub</span>
+          <span className="text-[19px] font-semibold tracking-tight text-foreground">{env.APP_TITLE}</span>
         </div>
 
         <div className="rounded-[14px] border border-border bg-card px-7 py-8 shadow-[0_20px_60px_-20px_rgba(0,0,0,.6)]">

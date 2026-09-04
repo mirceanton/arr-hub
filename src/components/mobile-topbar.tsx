@@ -17,11 +17,13 @@ export function MobileTopBar({
   isAdmin,
   canManageAny,
   canViewIndexers,
+  appTitle,
 }: {
   user: UserRecord;
   isAdmin: boolean;
   canManageAny: boolean;
   canViewIndexers: boolean;
+  appTitle: string;
 }) {
   const initials = user.displayName
     .split(" ")
@@ -39,9 +41,9 @@ export function MobileTopBar({
           className="flex size-6 items-center justify-center rounded-md text-xs font-bold text-white"
           style={{ background: "linear-gradient(155deg,#8b5cf6,#6d28d9)" }}
         >
-          A
+          {appTitle.charAt(0).toUpperCase()}
         </div>
-        <span className="text-sm font-semibold tracking-tight">Arr Hub</span>
+        <span className="text-sm font-semibold tracking-tight">{appTitle}</span>
       </div>
 
       <DropdownMenu>
