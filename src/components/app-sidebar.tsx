@@ -155,25 +155,35 @@ export function AppSidebar({
             <SidebarGroupLabel>Services</SidebarGroupLabel>
             <SidebarGroupContent>
               <div className="flex flex-col gap-0.5 px-1">
-                {services.map((s) => (
-                  <div
-                    key={s.id}
-                    className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] font-medium text-sidebar-foreground/75 hover:bg-sidebar-accent"
-                  >
-                    <span
-                      className="size-1.5 shrink-0 rounded-full"
-                      style={{ background: serviceAccent(s.id) }}
-                    />
-                    <span className="flex-1 truncate">{s.label}</span>
-                    <span
-                      className="size-1.5 shrink-0 rounded-full"
-                      style={{
-                        background: s.health.status === "up" ? "#22c55e" : "#ef4444",
-                        boxShadow: `0 0 0 3px ${s.health.status === "up" ? "rgba(34,197,94,.15)" : "rgba(239,68,68,.15)"}`,
-                      }}
-                    />
-                  </div>
-                ))}
+                {services.map((s) => {
+                  const rowContent = (
+                    <>
+                      <span
+                        className="size-1.5 shrink-0 rounded-full"
+                        style={{ background: serviceAccent(s.id) }}
+                      />
+                      <span className="flex-1 truncate">{s.label}</span>
+                      <span
+                        className="size-1.5 shrink-0 rounded-full"
+                        style={{
+                          background: s.health.status === "up" ? "#22c55e" : "#ef4444",
+                          boxShadow: `0 0 0 3px ${s.health.status === "up" ? "rgba(34,197,94,.15)" : "rgba(239,68,68,.15)"}`,
+                        }}
+                      />
+                    </>
+                  );
+                  const rowClassName =
+                    "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] font-medium text-sidebar-foreground/75 hover:bg-sidebar-accent";
+                  return isAdmin ? (
+                    <Link key={s.id} href={`/services/${s.id}`} className={rowClassName} title="Open embedded admin view">
+                      {rowContent}
+                    </Link>
+                  ) : (
+                    <div key={s.id} className={rowClassName}>
+                      {rowContent}
+                    </div>
+                  );
+                })}
               </div>
             </SidebarGroupContent>
           </SidebarGroup>
