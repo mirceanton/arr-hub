@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, Radar, ShieldCheck, Users } from "lucide-react";
+import { CalendarDays, LogOut, Radar, ShieldCheck, Users } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,9 +58,14 @@ export function MobileTopBar({
             <p className="truncate text-xs text-muted-foreground">{user.email}</p>
           </div>
 
+          <DropdownMenuSeparator />
+          <DropdownMenuItem render={<Link href="/calendar" />}>
+            <CalendarDays className="size-4" />
+            Calendar
+          </DropdownMenuItem>
+
           {(canViewIndexers || hasAdminItems) && (
             <>
-              <DropdownMenuSeparator />
               {canViewIndexers && (
                 <DropdownMenuItem render={<Link href="/indexers" />}>
                   <Radar className="size-4" />

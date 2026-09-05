@@ -1,13 +1,13 @@
 import { requireUser } from "@/lib/auth/session";
+import { loadServiceCalendar, type CalendarEntry } from "@/lib/calendar";
 import * as repo from "@/lib/db/repository";
 import { isAdmin } from "@/lib/permissions";
 import { serviceAccent } from "@/lib/service-style";
 import { serviceRegistry, getServiceStatuses, type ServiceStatus } from "@/lib/services/registry";
-import type { CalendarItem, QueueItem } from "@/lib/services/types";
+import type { QueueItem } from "@/lib/services/types";
 
 export const dynamic = "force-dynamic";
 
-type CalendarEntry = CalendarItem & { service: string };
 type QueueEntry = QueueItem & { service: string; accent: string };
 
 async function loadQueue(): Promise<QueueEntry[]> {
@@ -27,23 +27,12 @@ async function loadQueue(): Promise<QueueEntry[]> {
 }
 
 /** Full current-month range, so the calendar grid can mark every release day, not just the next 7. */
-async function loadMonthCalendar(): Promise<CalendarEntry[]> {
+function currentMonthRange(): { start: Date; end: Date } {
   const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-  const entries = await Promise.all(
-    [...serviceRegistry.values()]
-      .filter((c) => c.getCalendar)
-      .map(async (c) => {
-        try {
-          const items = await c.getCalendar!(start, end);
-          return items.map((item) => ({ ...item, service: c.label }));
-        } catch {
-          return [];
-        }
-      }),
-  );
-  return entries.flat().sort((a, b) => a.date.localeCompare(b.date));
+  return {
+    start: new Date(now.getFullYear(), now.getMonth(), 1),
+    end: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59),
+  };
 }
 
 function dayGroupLabel(date: Date, today: Date): string {
@@ -63,10 +52,11 @@ function statusMeta(status: ServiceStatus["health"]["status"]) {
 
 export default async function DashboardPage() {
   const user = await requireUser();
+  const { start, end } = currentMonthRange();
   const [statuses, queue, calendar, admin] = await Promise.all([
     getServiceStatuses(),
     loadQueue(),
-    loadMonthCalendar(),
+    loadServiceCalendar(start, end),
     isAdmin(user.id),
   ]);
   const myRequests = admin ? [] : await repo.listRequestsByUser(user.id);

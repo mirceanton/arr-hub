@@ -2,7 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, LayoutDashboard, ListChecks, Radar, Search, ShieldCheck, Users } from "lucide-react";
+import {
+  Activity,
+  CalendarDays,
+  LayoutDashboard,
+  ListChecks,
+  Radar,
+  Search,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -89,6 +98,12 @@ export function AppSidebar({
                 <SidebarMenuButton render={<Link href="/activity" />} isActive={isActive("/activity")}>
                   <Activity />
                   <span>Activity</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton render={<Link href="/calendar" />} isActive={isActive("/calendar")}>
+                  <CalendarDays />
+                  <span>Calendar</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               {canViewIndexers && (

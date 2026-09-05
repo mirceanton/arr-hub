@@ -14,8 +14,18 @@ const STATUS_STYLE: Record<RequestStatus, { color: string; bg: string }> = {
   rejected: { color: "#ef4444", bg: "rgba(239,68,68,.12)" },
 };
 
-export function RequestsClient({ initialRequests }: { initialRequests: RequestRecord[] }) {
-  const [requests, setRequests] = useState<RequestRecord[]>(initialRequests);
+export type RequestRow = RequestRecord & { requesterName?: string };
+
+export function RequestsClient({
+  initialRequests,
+  showRequester = false,
+  emptyMessage = "You haven't requested anything yet — try the Search page.",
+}: {
+  initialRequests: RequestRow[];
+  showRequester?: boolean;
+  emptyMessage?: string;
+}) {
+  const [requests, setRequests] = useState<RequestRow[]>(initialRequests);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   async function deleteRequest(id: string) {
@@ -37,11 +47,7 @@ export function RequestsClient({ initialRequests }: { initialRequests: RequestRe
   }
 
   if (requests.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        You haven&apos;t requested anything yet — try the Search page.
-      </p>
-    );
+    return <p className="text-sm text-muted-foreground">{emptyMessage}</p>;
   }
 
   return (
@@ -51,6 +57,7 @@ export function RequestsClient({ initialRequests }: { initialRequests: RequestRe
           <TableRow className="hover:bg-transparent">
             <TableHead>Title</TableHead>
             <TableHead>Service</TableHead>
+            {showRequester && <TableHead>Requested by</TableHead>}
             <TableHead>Requested</TableHead>
             <TableHead className="text-right">Status</TableHead>
             <TableHead className="w-10" />
@@ -71,6 +78,7 @@ export function RequestsClient({ initialRequests }: { initialRequests: RequestRe
                     {r.service}
                   </span>
                 </TableCell>
+                {showRequester && <TableCell>{r.requesterName ?? "—"}</TableCell>}
                 <TableCell className="font-mono text-xs">
                   {r.requestedAt.toLocaleDateString()}
                 </TableCell>

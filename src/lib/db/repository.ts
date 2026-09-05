@@ -336,6 +336,39 @@ export async function listRecentRequests(services: string[], limit: number): Pro
   return rows.map(toRequestRecord);
 }
 
+export interface RequestWithRequester extends RequestRecord {
+  requesterName: string;
+}
+
+/** Every request regardless of status, plus the requester's display name — the admin-facing history view. */
+export async function listRecentRequestsWithRequester(
+  services: string[],
+  limit: number,
+): Promise<RequestWithRequester[]> {
+  if (services.length === 0) return [];
+  const rows = await anyDb
+    .select({
+      id: s.requests.id,
+      userId: s.requests.userId,
+      service: s.requests.service,
+      externalId: s.requests.externalId,
+      title: s.requests.title,
+      mediaType: s.requests.mediaType,
+      status: s.requests.status,
+      requestedAt: s.requests.requestedAt,
+      decidedBy: s.requests.decidedBy,
+      decidedAt: s.requests.decidedAt,
+      selection: s.requests.selection,
+      requesterName: s.users.displayName,
+    })
+    .from(s.requests)
+    .innerJoin(s.users, eq(s.requests.userId, s.users.id))
+    .where(inArray(s.requests.service, services))
+    .orderBy(desc(s.requests.requestedAt))
+    .limit(limit);
+  return rows.map((row: any) => ({ ...toRequestRecord(row), requesterName: row.requesterName }));
+}
+
 export async function getRequestById(id: string): Promise<RequestRecord | null> {
   const [row] = await anyDb.select().from(s.requests).where(eq(s.requests.id, id)).limit(1);
   return row ? toRequestRecord(row) : null;
