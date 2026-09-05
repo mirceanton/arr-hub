@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { serviceAccent } from "@/lib/service-style";
 import type { PendingRequestWithRequester } from "@/lib/db/repository";
@@ -26,6 +27,24 @@ export function AdminRequestsClient({
       setRequests((prev) => prev.filter((r) => r.id !== id));
     } catch {
       toast.error(`Failed to ${decision}`);
+    } finally {
+      setActingOn(null);
+    }
+  }
+
+  async function deleteRequest(id: string) {
+    setActingOn(id);
+    try {
+      const res = await fetch(`/api/requests/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        toast.error(body.error ?? "Failed to delete request");
+        return;
+      }
+      toast.success("Request deleted");
+      setRequests((prev) => prev.filter((r) => r.id !== id));
+    } catch {
+      toast.error("Failed to delete request");
     } finally {
       setActingOn(null);
     }
@@ -72,6 +91,14 @@ export function AdminRequestsClient({
                     {r.requestedAt.toLocaleDateString()}
                   </div>
                 </div>
+                <button
+                  disabled={busy}
+                  onClick={() => deleteRequest(r.id)}
+                  aria-label={`Delete request for ${r.title}`}
+                  className="shrink-0 text-muted-foreground transition-colors hover:text-red-500 disabled:pointer-events-none disabled:opacity-50"
+                >
+                  <Trash2 className="size-4" />
+                </button>
                 <button
                   disabled={busy}
                   onClick={() => decide(r.id, "reject")}

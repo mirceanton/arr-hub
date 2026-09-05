@@ -337,6 +337,10 @@ export async function findApprovedRequest(
   return row ? toRequestRecord(row) : null;
 }
 
+export async function deleteRequest(id: string): Promise<void> {
+  await anyDb.delete(s.requests).where(eq(s.requests.id, id));
+}
+
 export async function markRequestFulfilled(id: string): Promise<void> {
   await anyDb
     .update(s.requests)
