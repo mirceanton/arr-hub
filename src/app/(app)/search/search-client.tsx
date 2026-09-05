@@ -162,14 +162,28 @@ export function SearchClient({ services }: { services: ServiceOption[] }) {
                 key={result.externalId}
                 className="overflow-hidden rounded-[10px] border border-border bg-card"
               >
-                <div
-                  className="flex aspect-[2/3] items-center justify-center p-3 text-center font-mono text-[10px]"
-                  style={{
-                    color: "rgba(255,255,255,.3)",
-                    backgroundImage: `repeating-linear-gradient(45deg, ${accent}22, ${accent}22 8px, rgba(255,255,255,.02) 8px, rgba(255,255,255,.02) 16px)`,
-                  }}
-                >
-                  poster art
+                <div className="relative aspect-[2/3] w-full">
+                  <div
+                    className="absolute inset-0 flex items-center justify-center p-3 text-center font-mono text-[10px]"
+                    style={{
+                      color: "rgba(255,255,255,.3)",
+                      backgroundImage: `repeating-linear-gradient(45deg, ${accent}22, ${accent}22 8px, rgba(255,255,255,.02) 8px, rgba(255,255,255,.02) 16px)`,
+                    }}
+                  >
+                    poster art
+                  </div>
+                  {result.posterUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- arbitrary external poster hosts (TMDB/Fanart), not worth a next/image remotePatterns allowlist
+                    <img
+                      src={result.posterUrl}
+                      alt={result.title}
+                      loading="lazy"
+                      className="absolute inset-0 size-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.visibility = "hidden";
+                      }}
+                    />
+                  ) : null}
                 </div>
                 <div className="px-3 py-2.5">
                   <div className="mb-0.5 truncate text-[12.5px] font-semibold">{result.title}</div>
