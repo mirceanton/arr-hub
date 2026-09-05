@@ -11,9 +11,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PERMISSION_ACTIONS, ROLES, type PermissionAction, type Role } from "@/lib/db/models";
 import type { UserWithRoles } from "@/lib/db/models";
+
+type AutoApproveState = "inherit" | "on" | "off";
+
+function autoApproveState(value: boolean | null): AutoApproveState {
+  if (value === null) return "inherit";
+  return value ? "on" : "off";
+}
 
 interface ServiceOption {
   id: string;
@@ -42,13 +50,52 @@ function initials(name: string) {
 export function AdminUsersClient({
   services,
   initialUsers,
+  initialAutoApproveAll,
 }: {
   services: ServiceOption[];
   initialUsers: UserWithRoles[];
+  initialAutoApproveAll: boolean;
 }) {
   const [users, setUsers] = useState<UserWithRoles[]>(initialUsers);
   const [permUser, setPermUser] = useState<UserWithRoles | null>(null);
   const [overrides, setOverrides] = useState<Record<string, boolean> | null>(null);
+  const [autoApproveAll, setAutoApproveAll] = useState(initialAutoApproveAll);
+  const [savingAutoApproveAll, setSavingAutoApproveAll] = useState(false);
+
+  async function toggleAutoApproveAll(checked: boolean) {
+    setSavingAutoApproveAll(true);
+    const previous = autoApproveAll;
+    setAutoApproveAll(checked);
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ autoApproveAll: checked }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(checked ? "Auto-approval enabled for everyone" : "Auto-approval disabled");
+    } catch {
+      setAutoApproveAll(previous);
+      toast.error("Failed to update auto-approval default");
+    } finally {
+      setSavingAutoApproveAll(false);
+    }
+  }
+
+  async function changeAutoApprove(userId: string, state: AutoApproveState) {
+    const autoApprove = state === "inherit" ? null : state === "on";
+    const res = await fetch(`/api/admin/users/${userId}/auto-approve`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ autoApprove }),
+    });
+    if (!res.ok) {
+      toast.error("Failed to update auto-approval");
+      return;
+    }
+    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, autoApprove } : u)));
+    toast.success("Auto-approval updated");
+  }
 
   async function changeRole(userId: string, role: Role) {
     const res = await fetch(`/api/admin/users/${userId}/role`, {
@@ -116,12 +163,28 @@ export function AdminUsersClient({
         </p>
       </div>
 
+      <div className="flex items-center justify-between rounded-[10px] border border-border bg-card px-4 py-3.5">
+        <div>
+          <p className="text-[13.5px] font-semibold">Auto-approve requests by default</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            New requests skip the pending queue and are added immediately. Per-user overrides below
+            take priority over this default.
+          </p>
+        </div>
+        <Switch
+          checked={autoApproveAll}
+          onCheckedChange={toggleAutoApproveAll}
+          disabled={savingAutoApproveAll}
+        />
+      </div>
+
       <div className="overflow-hidden rounded-[10px] border border-border bg-card">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               <TableHead>User</TableHead>
               <TableHead>Role</TableHead>
+              <TableHead>Auto-approve</TableHead>
               <TableHead className="text-right">Permissions</TableHead>
             </TableRow>
           </TableHeader>
@@ -162,6 +225,21 @@ export function AdminUsersClient({
                             {r}
                           </SelectItem>
                         ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>
+                    <Select
+                      value={autoApproveState(u.autoApprove)}
+                      onValueChange={(value) => value && changeAutoApprove(u.id, value as AutoApproveState)}
+                    >
+                      <SelectTrigger className="w-28">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="inherit">Inherit</SelectItem>
+                        <SelectItem value="on">On</SelectItem>
+                        <SelectItem value="off">Off</SelectItem>
                       </SelectContent>
                     </Select>
                   </TableCell>

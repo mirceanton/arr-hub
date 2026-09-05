@@ -51,6 +51,7 @@ function toUserRecord(row: any): UserRecord {
     displayName: row.displayName,
     createdAt: new Date(row.createdAt),
     lastLoginAt: row.lastLoginAt ? new Date(row.lastLoginAt) : null,
+    autoApprove: row.autoApprove ?? null,
   };
 }
 
@@ -137,6 +138,10 @@ export async function setUserRole(userId: string, role: Role): Promise<void> {
   await anyDb.insert(s.userRoles).values({ id: randomUUID(), userId, roleId });
 }
 
+export async function setUserAutoApprove(userId: string, autoApprove: boolean | null): Promise<void> {
+  await anyDb.update(s.users).set({ autoApprove }).where(eq(s.users.id, userId));
+}
+
 export async function listUsersWithRoles(): Promise<UserWithRoles[]> {
   const users = await anyDb.select().from(s.users);
   const roleRows = await anyDb
@@ -212,6 +217,33 @@ export async function setServicePermissionOverride(
       target: [s.servicePermissions.userId, s.servicePermissions.service, s.servicePermissions.action],
       set: { granted },
     });
+}
+
+// ---- App settings ----------------------------------------------------------
+
+const AUTO_APPROVE_ALL_KEY = "auto_approve_all";
+
+export async function getAutoApproveAllDefault(): Promise<boolean> {
+  const [row] = await anyDb
+    .select({ value: s.appSettings.value })
+    .from(s.appSettings)
+    .where(eq(s.appSettings.key, AUTO_APPROVE_ALL_KEY))
+    .limit(1);
+  return row?.value === "true";
+}
+
+export async function setAutoApproveAllDefault(enabled: boolean): Promise<void> {
+  await anyDb
+    .insert(s.appSettings)
+    .values({ key: AUTO_APPROVE_ALL_KEY, value: String(enabled) })
+    .onConflictDoUpdate({ target: s.appSettings.key, set: { value: String(enabled) } });
+}
+
+/** A user's explicit auto-approve override wins; otherwise falls back to the global default. */
+export async function getEffectiveAutoApprove(userId: string): Promise<boolean> {
+  const user = await getUserById(userId);
+  if (user?.autoApprove !== null && user?.autoApprove !== undefined) return user.autoApprove;
+  return getAutoApproveAllDefault();
 }
 
 // ---- Requests ------------------------------------------------------------

@@ -2,9 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { can } from "@/lib/permissions";
 import * as repo from "@/lib/db/repository";
-import { getServiceClient } from "@/lib/services/registry";
-import { logger } from "@/lib/logger";
-import type { ServiceId } from "@/env";
+import { approveRequest } from "@/lib/requests/decide";
 
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
@@ -20,18 +18,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   const allowed = await can(user.id, target.service, "manage");
   if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const client = getServiceClient(target.service as ServiceId);
-  if (!client?.addItem) {
-    return NextResponse.json({ error: "Service cannot add items" }, { status: 400 });
-  }
-
-  try {
-    await client.addItem(target.externalId);
-  } catch (err) {
-    logger.error({ err, requestId: id, service: target.service }, "failed to add item on approval");
-    return NextResponse.json({ error: "The service rejected the add — request left pending" }, { status: 502 });
-  }
-
-  const updated = await repo.decideRequest(id, { status: "approved", decidedBy: user.id });
-  return NextResponse.json(updated);
+  const result = await approveRequest(target, user.id);
+  if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
+  return NextResponse.json(result.request);
 }

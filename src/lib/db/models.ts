@@ -16,6 +16,8 @@ export interface UserRecord {
   displayName: string;
   createdAt: Date;
   lastLoginAt: Date | null;
+  /** null = inherit the global auto-approve default; true/false = explicit per-user override. */
+  autoApprove: boolean | null;
 }
 
 export interface UserWithRoles extends UserRecord {

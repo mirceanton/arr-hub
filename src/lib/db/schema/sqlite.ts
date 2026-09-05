@@ -7,6 +7,13 @@ export const users = sqliteTable("users", {
   displayName: text("display_name").notNull(),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   lastLoginAt: integer("last_login_at", { mode: "timestamp_ms" }),
+  /** null = inherit the app_settings global default; true/false = explicit per-user override. */
+  autoApprove: integer("auto_approve", { mode: "boolean" }),
+});
+
+export const appSettings = sqliteTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
 });
 
 export const roles = sqliteTable("roles", {

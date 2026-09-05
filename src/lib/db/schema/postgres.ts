@@ -7,6 +7,13 @@ export const users = pgTable("users", {
   displayName: text("display_name").notNull(),
   createdAt: timestamp("created_at", { mode: "date" }).notNull(),
   lastLoginAt: timestamp("last_login_at", { mode: "date" }),
+  /** null = inherit the app_settings global default; true/false = explicit per-user override. */
+  autoApprove: boolean("auto_approve"),
+});
+
+export const appSettings = pgTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
 });
 
 export const roles = pgTable("roles", {

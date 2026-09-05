@@ -4,6 +4,7 @@ import { SERVICE_IDS } from "@/env";
 import { getCurrentUser } from "@/lib/auth/session";
 import { can } from "@/lib/permissions";
 import * as repo from "@/lib/db/repository";
+import { approveRequest } from "@/lib/requests/decide";
 import { getServiceClient } from "@/lib/services/registry";
 
 const bodySchema = z.object({
@@ -37,5 +38,13 @@ export async function POST(request: Request) {
   if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const created = await repo.createRequest({ userId: user.id, service, externalId, title, mediaType });
+
+  if (await repo.getEffectiveAutoApprove(user.id)) {
+    const result = await approveRequest(created, user.id);
+    if (result.ok) return NextResponse.json(result.request, { status: 201 });
+    // Auto-approval failing (e.g. the service rejected the add) isn't a request-creation failure —
+    // the request itself was created fine and is left pending for manual approval instead.
+  }
+
   return NextResponse.json(created, { status: 201 });
 }
