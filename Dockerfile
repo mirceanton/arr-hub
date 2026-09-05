@@ -3,14 +3,14 @@
 # --- deps: install once, reused by both the build and runtime stages so
 # migrations (run via tsx at container start) have everything they need
 # without re-installing dev dependencies at runtime. ---
-FROM node:22-alpine AS deps
+FROM node:24-alpine AS deps
 RUN apk add --no-cache libc6-compat python3 make g++
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
 # --- builder: compile the Next.js production build ---
-FROM node:22-alpine AS builder
+FROM node:24-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -31,7 +31,7 @@ ENV OIDC_REDIRECT_URI=http://build-placeholder.invalid/api/auth/callback/keycloa
 RUN npm run build
 
 # --- runner: minimal final image ---
-FROM node:22-alpine AS runner
+FROM node:24-alpine AS runner
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
