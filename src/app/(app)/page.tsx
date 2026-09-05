@@ -1,3 +1,6 @@
+import { requireUser } from "@/lib/auth/session";
+import * as repo from "@/lib/db/repository";
+import { isAdmin } from "@/lib/permissions";
 import { serviceAccent } from "@/lib/service-style";
 import { serviceRegistry, getServiceStatuses, type ServiceStatus } from "@/lib/services/registry";
 import type { CalendarItem, QueueItem } from "@/lib/services/types";
@@ -59,11 +62,21 @@ function statusMeta(status: ServiceStatus["health"]["status"]) {
 }
 
 export default async function DashboardPage() {
-  const [statuses, queue, calendar] = await Promise.all([
+  const user = await requireUser();
+  const [statuses, queue, calendar, admin] = await Promise.all([
     getServiceStatuses(),
     loadQueue(),
     loadMonthCalendar(),
+    isAdmin(user.id),
   ]);
+  const myRequests = admin ? [] : await repo.listRequestsByUser(user.id);
+  const requestCounts = new Map<string, { fulfilled: number; total: number }>();
+  for (const r of myRequests) {
+    const counts = requestCounts.get(r.service) ?? { fulfilled: 0, total: 0 };
+    counts.total += 1;
+    if (r.status === "fulfilled") counts.fulfilled += 1;
+    requestCounts.set(r.service, counts);
+  }
 
   const now = new Date();
   const monthLabel = now.toLocaleDateString("en-US", { month: "long", year: "numeric" });
@@ -110,10 +123,24 @@ export default async function DashboardPage() {
                 </span>
               </div>
               <div className="flex items-baseline gap-1.5 font-mono">
-                <span className="text-lg font-semibold">
-                  {s.health.status === "up" ? (s.health.version ?? "—") : "—"}
-                </span>
+                {admin ? (
+                  <span className="text-lg font-semibold">
+                    {s.health.status === "up" ? (s.health.version ?? "—") : "—"}
+                  </span>
+                ) : (
+                  (() => {
+                    const counts = requestCounts.get(s.id);
+                    return (
+                      <span className="text-lg font-semibold">
+                        {counts ? `${counts.fulfilled}/${counts.total}` : "—"}
+                      </span>
+                    );
+                  })()
+                )}
               </div>
+              {!admin && (
+                <div className="mt-0.5 text-[10.5px] text-muted-foreground">requests fulfilled</div>
+              )}
               {s.health.status === "down" && s.health.message && (
                 <div className="mt-1.5 truncate text-[10.5px] text-muted-foreground">
                   {s.health.message}
