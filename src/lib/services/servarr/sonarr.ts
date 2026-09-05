@@ -1,6 +1,11 @@
 import type { ServiceId } from "@/env";
-import type { SearchResult } from "../types";
+import type { RequestSelection, SearchResult, SeasonOption } from "../types";
 import { ServarrClient } from "./base-client";
+
+interface SonarrSeason {
+  seasonNumber: number;
+  statistics?: { episodeCount?: number };
+}
 
 interface SonarrSeries {
   title: string;
@@ -10,6 +15,7 @@ interface SonarrSeries {
   titleSlug: string;
   remotePoster?: string;
   images: { coverType: string; remoteUrl?: string; url?: string }[];
+  seasons: SonarrSeason[];
 }
 
 /** Verified against a live linuxserver/sonarr container: /api/v3, X-Api-Key header, `term=tvdb:<id>` for exact lookup. */
@@ -26,13 +32,24 @@ export class SonarrClient extends ServarrClient {
     return results.map(toSearchResult);
   }
 
-  async addItem(externalId: string): Promise<void> {
+  async listSeasons(externalId: string): Promise<SeasonOption[]> {
+    const [lookup] = await this.request<SonarrSeries[]>(`/series/lookup?term=tvdb:${externalId}`);
+    if (!lookup) throw new Error(`Sonarr: no series found for tvdbId ${externalId}`);
+    return lookup.seasons.map((s) => ({
+      seasonNumber: s.seasonNumber,
+      episodeCount: s.statistics?.episodeCount,
+    }));
+  }
+
+  async addItem(externalId: string, selection?: RequestSelection): Promise<void> {
     const [rootFolderPath, qualityProfileId] = await Promise.all([
       this.getDefaultRootFolder(),
       this.getDefaultQualityProfileId(),
     ]);
     const [lookup] = await this.request<SonarrSeries[]>(`/series/lookup?term=tvdb:${externalId}`);
     if (!lookup) throw new Error(`Sonarr: no series found for tvdbId ${externalId}`);
+
+    const seasonNumbers = selection?.seasonNumbers;
     await this.request("/series", {
       method: "POST",
       body: JSON.stringify({
@@ -44,6 +61,14 @@ export class SonarrClient extends ServarrClient {
         rootFolderPath,
         monitored: true,
         seasonFolder: true,
+        ...(seasonNumbers
+          ? {
+              seasons: lookup.seasons.map((s) => ({
+                seasonNumber: s.seasonNumber,
+                monitored: seasonNumbers.includes(s.seasonNumber),
+              })),
+            }
+          : {}),
         addOptions: { searchForMissingEpisodes: true },
       }),
     });

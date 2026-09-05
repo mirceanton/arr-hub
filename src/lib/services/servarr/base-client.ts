@@ -1,6 +1,13 @@
 import type { ServiceId } from "@/env";
 import { fetchJson, ServiceRequestError } from "../http";
-import type { CalendarItem, MediaServiceClient, QueueItem, SearchResult, ServiceHealth } from "../types";
+import type {
+  CalendarItem,
+  MediaServiceClient,
+  QueueItem,
+  RequestSelection,
+  SearchResult,
+  ServiceHealth,
+} from "../types";
 
 export interface ServarrClientConfig {
   baseUrl: string;
@@ -115,7 +122,7 @@ export abstract class ServarrClient implements MediaServiceClient {
   }
 
   abstract search(query: string): Promise<SearchResult[]>;
-  abstract addItem(externalId: string): Promise<void>;
+  abstract addItem(externalId: string, selection?: RequestSelection): Promise<void>;
 }
 
 function isoDate(d: Date): string {

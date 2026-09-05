@@ -13,6 +13,10 @@ const LOOKUP_RESULT = {
   titleSlug: "breaking-bad",
   remotePoster: "https://example.test/remote-poster.jpg",
   images: [{ coverType: "poster", remoteUrl: "https://example.test/poster.jpg" }],
+  seasons: [
+    { seasonNumber: 1, statistics: { episodeCount: 7 } },
+    { seasonNumber: 2, statistics: { episodeCount: 13 } },
+  ],
 };
 
 const server = setupServer(
@@ -90,6 +94,31 @@ describe("SonarrClient (mocked HTTP)", () => {
       rootFolderPath: "/media",
       qualityProfileId: 4,
       monitored: true,
+    });
+    expect(capturedBody).not.toHaveProperty("seasons");
+  });
+
+  it("lists seasons from the lookup response", async () => {
+    await expect(client.listSeasons("81189")).resolves.toEqual([
+      { seasonNumber: 1, episodeCount: 7 },
+      { seasonNumber: 2, episodeCount: 13 },
+    ]);
+  });
+
+  it("marks only the selected seasons as monitored when a selection is given", async () => {
+    let capturedBody: Record<string, unknown> | null = null;
+    server.use(
+      http.post(`${BASE_URL}/api/v3/series`, async ({ request }) => {
+        capturedBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ id: 1 }, { status: 201 });
+      }),
+    );
+    await client.addItem("81189", { seasonNumbers: [2] });
+    expect(capturedBody).toMatchObject({
+      seasons: [
+        { seasonNumber: 1, monitored: false },
+        { seasonNumber: 2, monitored: true },
+      ],
     });
   });
 });

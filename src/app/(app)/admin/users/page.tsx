@@ -12,7 +12,12 @@ export default async function AdminUsersPage() {
   if (!(await isAdmin(user.id))) redirect("/");
 
   const services = [...serviceRegistry.values()].map((c) => ({ id: c.id, label: c.label }));
-  const initialUsers = await repo.listUsersWithRoles();
+  const [initialUsers, autoApproveAll] = await Promise.all([
+    repo.listUsersWithRoles(),
+    repo.getAutoApproveAllDefault(),
+  ]);
 
-  return <AdminUsersClient services={services} initialUsers={initialUsers} />;
+  return (
+    <AdminUsersClient services={services} initialUsers={initialUsers} initialAutoApproveAll={autoApproveAll} />
+  );
 }

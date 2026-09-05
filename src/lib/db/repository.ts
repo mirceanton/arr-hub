@@ -40,6 +40,7 @@ function toRequestRecord(row: any): RequestRecord {
     requestedAt: new Date(row.requestedAt),
     decidedBy: row.decidedBy,
     decidedAt: row.decidedAt ? new Date(row.decidedAt) : null,
+    selection: row.selection ?? null,
   };
 }
 
@@ -51,6 +52,7 @@ function toUserRecord(row: any): UserRecord {
     displayName: row.displayName,
     createdAt: new Date(row.createdAt),
     lastLoginAt: row.lastLoginAt ? new Date(row.lastLoginAt) : null,
+    autoApprove: row.autoApprove ?? null,
   };
 }
 
@@ -137,6 +139,10 @@ export async function setUserRole(userId: string, role: Role): Promise<void> {
   await anyDb.insert(s.userRoles).values({ id: randomUUID(), userId, roleId });
 }
 
+export async function setUserAutoApprove(userId: string, autoApprove: boolean | null): Promise<void> {
+  await anyDb.update(s.users).set({ autoApprove }).where(eq(s.users.id, userId));
+}
+
 export async function listUsersWithRoles(): Promise<UserWithRoles[]> {
   const users = await anyDb.select().from(s.users);
   const roleRows = await anyDb
@@ -214,6 +220,33 @@ export async function setServicePermissionOverride(
     });
 }
 
+// ---- App settings ----------------------------------------------------------
+
+const AUTO_APPROVE_ALL_KEY = "auto_approve_all";
+
+export async function getAutoApproveAllDefault(): Promise<boolean> {
+  const [row] = await anyDb
+    .select({ value: s.appSettings.value })
+    .from(s.appSettings)
+    .where(eq(s.appSettings.key, AUTO_APPROVE_ALL_KEY))
+    .limit(1);
+  return row?.value === "true";
+}
+
+export async function setAutoApproveAllDefault(enabled: boolean): Promise<void> {
+  await anyDb
+    .insert(s.appSettings)
+    .values({ key: AUTO_APPROVE_ALL_KEY, value: String(enabled) })
+    .onConflictDoUpdate({ target: s.appSettings.key, set: { value: String(enabled) } });
+}
+
+/** A user's explicit auto-approve override wins; otherwise falls back to the global default. */
+export async function getEffectiveAutoApprove(userId: string): Promise<boolean> {
+  const user = await getUserById(userId);
+  if (user?.autoApprove !== null && user?.autoApprove !== undefined) return user.autoApprove;
+  return getAutoApproveAllDefault();
+}
+
 // ---- Requests ------------------------------------------------------------
 
 export async function createRequest(input: {
@@ -222,6 +255,7 @@ export async function createRequest(input: {
   externalId: string;
   title: string;
   mediaType: string;
+  selection?: string | null;
 }): Promise<RequestRecord> {
   const [row] = await anyDb
     .insert(s.requests)
@@ -236,6 +270,7 @@ export async function createRequest(input: {
       requestedAt: new Date(),
       decidedBy: null,
       decidedAt: null,
+      selection: input.selection ?? null,
     })
     .returning();
   return toRequestRecord(row);
@@ -301,6 +336,39 @@ export async function listRecentRequests(services: string[], limit: number): Pro
   return rows.map(toRequestRecord);
 }
 
+export interface RequestWithRequester extends RequestRecord {
+  requesterName: string;
+}
+
+/** Every request regardless of status, plus the requester's display name — the admin-facing history view. */
+export async function listRecentRequestsWithRequester(
+  services: string[],
+  limit: number,
+): Promise<RequestWithRequester[]> {
+  if (services.length === 0) return [];
+  const rows = await anyDb
+    .select({
+      id: s.requests.id,
+      userId: s.requests.userId,
+      service: s.requests.service,
+      externalId: s.requests.externalId,
+      title: s.requests.title,
+      mediaType: s.requests.mediaType,
+      status: s.requests.status,
+      requestedAt: s.requests.requestedAt,
+      decidedBy: s.requests.decidedBy,
+      decidedAt: s.requests.decidedAt,
+      selection: s.requests.selection,
+      requesterName: s.users.displayName,
+    })
+    .from(s.requests)
+    .innerJoin(s.users, eq(s.requests.userId, s.users.id))
+    .where(inArray(s.requests.service, services))
+    .orderBy(desc(s.requests.requestedAt))
+    .limit(limit);
+  return rows.map((row: any) => ({ ...toRequestRecord(row), requesterName: row.requesterName }));
+}
+
 export async function getRequestById(id: string): Promise<RequestRecord | null> {
   const [row] = await anyDb.select().from(s.requests).where(eq(s.requests.id, id)).limit(1);
   return row ? toRequestRecord(row) : null;
@@ -335,6 +403,10 @@ export async function findApprovedRequest(
     )
     .limit(1);
   return row ? toRequestRecord(row) : null;
+}
+
+export async function deleteRequest(id: string): Promise<void> {
+  await anyDb.delete(s.requests).where(eq(s.requests.id, id));
 }
 
 export async function markRequestFulfilled(id: string): Promise<void> {

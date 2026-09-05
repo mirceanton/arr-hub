@@ -7,6 +7,13 @@ export const users = sqliteTable("users", {
   displayName: text("display_name").notNull(),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   lastLoginAt: integer("last_login_at", { mode: "timestamp_ms" }),
+  /** null = inherit the app_settings global default; true/false = explicit per-user override. */
+  autoApprove: integer("auto_approve", { mode: "boolean" }),
+});
+
+export const appSettings = sqliteTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
 });
 
 export const roles = sqliteTable("roles", {
@@ -61,6 +68,8 @@ export const requests = sqliteTable("requests", {
   requestedAt: integer("requested_at", { mode: "timestamp_ms" }).notNull(),
   decidedBy: text("decided_by").references(() => users.id),
   decidedAt: integer("decided_at", { mode: "timestamp_ms" }),
+  /** JSON-serialized RequestSelection (e.g. {"seasonNumbers":[1,2]}), or null for "everything". */
+  selection: text("selection"),
 });
 
 export const serviceEvents = sqliteTable("service_events", {

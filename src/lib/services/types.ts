@@ -15,6 +15,16 @@ export interface SearchResult {
   mediaType: string;
 }
 
+/** What to monitor when adding an item — currently just Sonarr's per-season granularity. */
+export interface RequestSelection {
+  seasonNumbers?: number[];
+}
+
+export interface SeasonOption {
+  seasonNumber: number;
+  episodeCount?: number;
+}
+
 export interface QueueItem {
   id: string;
   title: string;
@@ -74,7 +84,9 @@ export interface MediaServiceClient {
   readonly mediaType: string;
   healthCheck(): Promise<ServiceHealth>;
   search?(query: string): Promise<SearchResult[]>;
-  addItem?(externalId: string): Promise<void>;
+  addItem?(externalId: string, selection?: RequestSelection): Promise<void>;
+  /** Only Sonarr implements this — lets the request UI offer per-season selection instead of all-or-nothing. */
+  listSeasons?(externalId: string): Promise<SeasonOption[]>;
   getQueue?(): Promise<QueueItem[]>;
   getCalendar?(start: Date, end: Date): Promise<CalendarItem[]>;
   getIndexers?(): Promise<IndexerStatus[]>;

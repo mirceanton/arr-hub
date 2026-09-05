@@ -7,6 +7,13 @@ export const users = pgTable("users", {
   displayName: text("display_name").notNull(),
   createdAt: timestamp("created_at", { mode: "date" }).notNull(),
   lastLoginAt: timestamp("last_login_at", { mode: "date" }),
+  /** null = inherit the app_settings global default; true/false = explicit per-user override. */
+  autoApprove: boolean("auto_approve"),
+});
+
+export const appSettings = pgTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
 });
 
 export const roles = pgTable("roles", {
@@ -61,6 +68,8 @@ export const requests = pgTable("requests", {
   requestedAt: timestamp("requested_at", { mode: "date" }).notNull(),
   decidedBy: text("decided_by").references(() => users.id),
   decidedAt: timestamp("decided_at", { mode: "date" }),
+  /** JSON-serialized RequestSelection (e.g. {"seasonNumbers":[1,2]}), or null for "everything". */
+  selection: text("selection"),
 });
 
 export const serviceEvents = pgTable("service_events", {

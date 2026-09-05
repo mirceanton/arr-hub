@@ -1,10 +1,13 @@
+import { requireUser } from "@/lib/auth/session";
+import { loadServiceCalendar, type CalendarEntry } from "@/lib/calendar";
+import * as repo from "@/lib/db/repository";
+import { isAdmin } from "@/lib/permissions";
 import { serviceAccent } from "@/lib/service-style";
 import { serviceRegistry, getServiceStatuses, type ServiceStatus } from "@/lib/services/registry";
-import type { CalendarItem, QueueItem } from "@/lib/services/types";
+import type { QueueItem } from "@/lib/services/types";
 
 export const dynamic = "force-dynamic";
 
-type CalendarEntry = CalendarItem & { service: string };
 type QueueEntry = QueueItem & { service: string; accent: string };
 
 async function loadQueue(): Promise<QueueEntry[]> {
@@ -24,23 +27,12 @@ async function loadQueue(): Promise<QueueEntry[]> {
 }
 
 /** Full current-month range, so the calendar grid can mark every release day, not just the next 7. */
-async function loadMonthCalendar(): Promise<CalendarEntry[]> {
+function currentMonthRange(): { start: Date; end: Date } {
   const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-  const entries = await Promise.all(
-    [...serviceRegistry.values()]
-      .filter((c) => c.getCalendar)
-      .map(async (c) => {
-        try {
-          const items = await c.getCalendar!(start, end);
-          return items.map((item) => ({ ...item, service: c.label }));
-        } catch {
-          return [];
-        }
-      }),
-  );
-  return entries.flat().sort((a, b) => a.date.localeCompare(b.date));
+  return {
+    start: new Date(now.getFullYear(), now.getMonth(), 1),
+    end: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59),
+  };
 }
 
 function dayGroupLabel(date: Date, today: Date): string {
@@ -59,11 +51,22 @@ function statusMeta(status: ServiceStatus["health"]["status"]) {
 }
 
 export default async function DashboardPage() {
-  const [statuses, queue, calendar] = await Promise.all([
+  const user = await requireUser();
+  const { start, end } = currentMonthRange();
+  const [statuses, queue, calendar, admin] = await Promise.all([
     getServiceStatuses(),
     loadQueue(),
-    loadMonthCalendar(),
+    loadServiceCalendar(start, end),
+    isAdmin(user.id),
   ]);
+  const myRequests = admin ? [] : await repo.listRequestsByUser(user.id);
+  const requestCounts = new Map<string, { fulfilled: number; total: number }>();
+  for (const r of myRequests) {
+    const counts = requestCounts.get(r.service) ?? { fulfilled: 0, total: 0 };
+    counts.total += 1;
+    if (r.status === "fulfilled") counts.fulfilled += 1;
+    requestCounts.set(r.service, counts);
+  }
 
   const now = new Date();
   const monthLabel = now.toLocaleDateString("en-US", { month: "long", year: "numeric" });
@@ -110,10 +113,24 @@ export default async function DashboardPage() {
                 </span>
               </div>
               <div className="flex items-baseline gap-1.5 font-mono">
-                <span className="text-lg font-semibold">
-                  {s.health.status === "up" ? (s.health.version ?? "—") : "—"}
-                </span>
+                {admin ? (
+                  <span className="text-lg font-semibold">
+                    {s.health.status === "up" ? (s.health.version ?? "—") : "—"}
+                  </span>
+                ) : (
+                  (() => {
+                    const counts = requestCounts.get(s.id);
+                    return (
+                      <span className="text-lg font-semibold">
+                        {counts ? `${counts.fulfilled}/${counts.total}` : "—"}
+                      </span>
+                    );
+                  })()
+                )}
               </div>
+              {!admin && (
+                <div className="mt-0.5 text-[10.5px] text-muted-foreground">requests fulfilled</div>
+              )}
               {s.health.status === "down" && s.health.message && (
                 <div className="mt-1.5 truncate text-[10.5px] text-muted-foreground">
                   {s.health.message}
