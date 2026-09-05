@@ -86,7 +86,7 @@ services:
     restart: unless-stopped
 
   postgres:
-    image: postgres:16
+    image: postgres:18
     container_name: arr-hub-test-postgres
     environment:
       - POSTGRES_USER=arrhub
