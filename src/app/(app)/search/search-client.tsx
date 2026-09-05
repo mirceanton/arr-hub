@@ -3,17 +3,27 @@
 import { useState } from "react";
 import { Search as SearchIcon } from "lucide-react";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { mediaTypeLabel, serviceAccent } from "@/lib/service-style";
-import type { SearchResult } from "@/lib/services/types";
+import type { RequestSelection, SearchResult, SeasonOption } from "@/lib/services/types";
 
 interface ServiceOption {
   id: string;
   label: string;
   mediaType: string;
   canRequest: boolean;
+  supportsSeasonSelection: boolean;
 }
 
 export function SearchClient({ services }: { services: ServiceOption[] }) {
@@ -23,6 +33,11 @@ export function SearchClient({ services }: { services: ServiceOption[] }) {
   const [loading, setLoading] = useState(false);
   const [requestingId, setRequestingId] = useState<string | null>(null);
   const [requestedIds, setRequestedIds] = useState<Set<string>>(new Set());
+
+  const [seasonDialogFor, setSeasonDialogFor] = useState<SearchResult | null>(null);
+  const [seasons, setSeasons] = useState<SeasonOption[] | null>(null);
+  const [selectedSeasons, setSelectedSeasons] = useState<Set<number>>(new Set());
+  const [loadingSeasons, setLoadingSeasons] = useState(false);
 
   const selected = services.find((s) => s.id === service);
   const accent = serviceAccent(service);
@@ -47,7 +62,7 @@ export function SearchClient({ services }: { services: ServiceOption[] }) {
     }
   }
 
-  async function requestItem(result: SearchResult) {
+  async function requestItem(result: SearchResult, selection?: RequestSelection) {
     if (!selected) return;
     setRequestingId(result.externalId);
     try {
@@ -59,6 +74,7 @@ export function SearchClient({ services }: { services: ServiceOption[] }) {
           externalId: result.externalId,
           title: result.title,
           mediaType: result.mediaType,
+          selection,
         }),
       });
       if (!res.ok) {
@@ -67,12 +83,47 @@ export function SearchClient({ services }: { services: ServiceOption[] }) {
         return;
       }
       setRequestedIds((prev) => new Set(prev).add(result.externalId));
+      setSeasonDialogFor(null);
       toast.success(`Requested "${result.title}"`);
     } catch {
       toast.error("Request failed");
     } finally {
       setRequestingId(null);
     }
+  }
+
+  async function openRequestFlow(result: SearchResult) {
+    if (!selected?.supportsSeasonSelection) {
+      await requestItem(result);
+      return;
+    }
+    setSeasonDialogFor(result);
+    setSeasons(null);
+    setLoadingSeasons(true);
+    try {
+      const res = await fetch(
+        `/api/search/options?service=${selected.id}&externalId=${encodeURIComponent(result.externalId)}`,
+      );
+      const body = await res.json().catch(() => ({}));
+      const options: SeasonOption[] | null = res.ok ? (body.seasons ?? null) : null;
+      setSeasons(options ?? []);
+      // Default to everything selected, matching the previous all-or-nothing behavior.
+      setSelectedSeasons(new Set((options ?? []).map((s) => s.seasonNumber)));
+    } catch {
+      setSeasons([]);
+      toast.error("Failed to load seasons — requesting all seasons instead");
+    } finally {
+      setLoadingSeasons(false);
+    }
+  }
+
+  function toggleSeason(seasonNumber: number) {
+    setSelectedSeasons((prev) => {
+      const next = new Set(prev);
+      if (next.has(seasonNumber)) next.delete(seasonNumber);
+      else next.add(seasonNumber);
+      return next;
+    });
   }
 
   if (services.length === 0) {
@@ -194,7 +245,7 @@ export function SearchClient({ services }: { services: ServiceOption[] }) {
                     {result.overview ?? "No overview available."}
                   </p>
                   <button
-                    onClick={() => requestItem(result)}
+                    onClick={() => openRequestFlow(result)}
                     disabled={!selected?.canRequest || alreadyRequested || requestingId === result.externalId}
                     className="w-full rounded-md border py-1.5 text-[11.5px] font-semibold transition-colors disabled:cursor-not-allowed"
                     style={
@@ -211,6 +262,53 @@ export function SearchClient({ services }: { services: ServiceOption[] }) {
           })}
         </div>
       )}
+
+      <Dialog open={seasonDialogFor !== null} onOpenChange={(open) => !open && setSeasonDialogFor(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Choose seasons — {seasonDialogFor?.title}</DialogTitle>
+            <DialogDescription>
+              Only the seasons you check will be monitored and searched for.
+            </DialogDescription>
+          </DialogHeader>
+          {loadingSeasons ? (
+            <p className="text-sm text-muted-foreground">Loading seasons…</p>
+          ) : seasons && seasons.length > 0 ? (
+            <div className="flex max-h-72 flex-col gap-2 overflow-y-auto">
+              {seasons.map((s) => (
+                <label key={s.seasonNumber} className="flex items-center gap-2.5 text-sm">
+                  <Checkbox
+                    checked={selectedSeasons.has(s.seasonNumber)}
+                    onCheckedChange={() => toggleSeason(s.seasonNumber)}
+                  />
+                  <span>
+                    {s.seasonNumber === 0 ? "Specials" : `Season ${s.seasonNumber}`}
+                    {s.episodeCount !== undefined && (
+                      <span className="text-muted-foreground"> · {s.episodeCount} episodes</span>
+                    )}
+                  </span>
+                </label>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No season data available.</p>
+          )}
+          <DialogFooter>
+            <button
+              onClick={() =>
+                seasonDialogFor && requestItem(seasonDialogFor, { seasonNumbers: [...selectedSeasons] })
+              }
+              disabled={loadingSeasons || selectedSeasons.size === 0 || requestingId === seasonDialogFor?.externalId}
+              className="rounded-md px-4 py-1.5 text-[11.5px] font-semibold text-primary-foreground transition-colors disabled:opacity-50"
+              style={{ background: accent }}
+            >
+              {requestingId === seasonDialogFor?.externalId
+                ? "Requesting…"
+                : `Request ${selectedSeasons.size} season${selectedSeasons.size === 1 ? "" : "s"}`}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

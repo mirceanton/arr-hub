@@ -15,6 +15,13 @@
       "when": 1788636228466,
       "tag": "0001_flimsy_invisible_woman",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788636597149,
+      "tag": "0002_sleepy_grandmaster",
+      "breakpoints": true
     }
   ]
 }

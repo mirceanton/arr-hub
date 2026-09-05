@@ -15,6 +15,13 @@
       "when": 1788636241631,
       "tag": "0001_fuzzy_miss_america",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788636603619,
+      "tag": "0002_hot_madame_masque",
+      "breakpoints": true
     }
   ]
 }

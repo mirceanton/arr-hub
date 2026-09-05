@@ -12,6 +12,7 @@ const bodySchema = z.object({
   externalId: z.string().min(1),
   title: z.string().min(1),
   mediaType: z.string().min(1),
+  selection: z.object({ seasonNumbers: z.array(z.number()).optional() }).optional(),
 });
 
 export async function GET() {
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: z.prettifyError(parsed.error) }, { status: 400 });
   }
-  const { service, externalId, title, mediaType } = parsed.data;
+  const { service, externalId, title, mediaType, selection } = parsed.data;
 
   if (!getServiceClient(service)) {
     return NextResponse.json({ error: "Service not configured" }, { status: 400 });
@@ -37,7 +38,14 @@ export async function POST(request: Request) {
   const allowed = await can(user.id, service, "request");
   if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const created = await repo.createRequest({ userId: user.id, service, externalId, title, mediaType });
+  const created = await repo.createRequest({
+    userId: user.id,
+    service,
+    externalId,
+    title,
+    mediaType,
+    selection: selection ? JSON.stringify(selection) : null,
+  });
 
   if (await repo.getEffectiveAutoApprove(user.id)) {
     const result = await approveRequest(created, user.id);

@@ -68,6 +68,8 @@ export const requests = sqliteTable("requests", {
   requestedAt: integer("requested_at", { mode: "timestamp_ms" }).notNull(),
   decidedBy: text("decided_by").references(() => users.id),
   decidedAt: integer("decided_at", { mode: "timestamp_ms" }),
+  /** JSON-serialized RequestSelection (e.g. {"seasonNumbers":[1,2]}), or null for "everything". */
+  selection: text("selection"),
 });
 
 export const serviceEvents = sqliteTable("service_events", {

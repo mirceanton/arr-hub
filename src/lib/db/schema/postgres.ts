@@ -68,6 +68,8 @@ export const requests = pgTable("requests", {
   requestedAt: timestamp("requested_at", { mode: "date" }).notNull(),
   decidedBy: text("decided_by").references(() => users.id),
   decidedAt: timestamp("decided_at", { mode: "date" }),
+  /** JSON-serialized RequestSelection (e.g. {"seasonNumbers":[1,2]}), or null for "everything". */
+  selection: text("selection"),
 });
 
 export const serviceEvents = pgTable("service_events", {

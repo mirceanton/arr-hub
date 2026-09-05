@@ -40,6 +40,7 @@ function toRequestRecord(row: any): RequestRecord {
     requestedAt: new Date(row.requestedAt),
     decidedBy: row.decidedBy,
     decidedAt: row.decidedAt ? new Date(row.decidedAt) : null,
+    selection: row.selection ?? null,
   };
 }
 
@@ -254,6 +255,7 @@ export async function createRequest(input: {
   externalId: string;
   title: string;
   mediaType: string;
+  selection?: string | null;
 }): Promise<RequestRecord> {
   const [row] = await anyDb
     .insert(s.requests)
@@ -268,6 +270,7 @@ export async function createRequest(input: {
       requestedAt: new Date(),
       decidedBy: null,
       decidedAt: null,
+      selection: input.selection ?? null,
     })
     .returning();
   return toRequestRecord(row);

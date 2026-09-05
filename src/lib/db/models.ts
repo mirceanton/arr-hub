@@ -43,6 +43,8 @@ export interface RequestRecord {
   requestedAt: Date;
   decidedBy: string | null;
   decidedAt: Date | null;
+  /** JSON-serialized RequestSelection, or null to add/monitor everything. */
+  selection: string | null;
 }
 
 export interface ServiceEventRecord {

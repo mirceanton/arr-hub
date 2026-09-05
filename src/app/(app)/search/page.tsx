@@ -18,6 +18,7 @@ export default async function SearchPage() {
       label: c.label,
       mediaType: c.mediaType,
       canRequest: requestFlags[i],
+      supportsSeasonSelection: Boolean(c.listSeasons),
     }))
     .filter((_, i) => viewFlags[i]);
 
