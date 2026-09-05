@@ -24,6 +24,55 @@ function describeRequest(r: RequestRecord): string {
   }
 }
 
+/** Friendlier badge text for event types we recognize; falls back to the raw eventType otherwise. */
+const EVENT_LABELS: Record<string, string> = {
+  Download: "Completed",
+  ReleaseImport: "Completed",
+  AlbumImport: "Completed",
+  DownloadFailure: "Failed",
+  downloadFailure: "Failed",
+  Grab: "Grabbed",
+  Health: "Health issue",
+  HealthIssue: "Health issue",
+  Test: "Test",
+  RequestDeleted: "Deleted",
+};
+
+function describeEvent(e: ServiceEventRecord): string {
+  let payload: Record<string, unknown> = {};
+  try {
+    payload = JSON.parse(e.rawPayload) as Record<string, unknown>;
+  } catch {
+    // Malformed/unexpected payload — fall through to the generic message below.
+  }
+
+  switch (e.eventType) {
+    case "RequestDeleted": {
+      const title = typeof payload.title === "string" ? payload.title : "a request";
+      const who = typeof payload.deletedByName === "string" ? payload.deletedByName : "Someone";
+      return payload.deletedBySelf
+        ? `deleted their own request for "${title}"`
+        : `${who} deleted the request for "${title}"`;
+    }
+    case "Download":
+    case "ReleaseImport":
+    case "AlbumImport":
+      return "a download completed and was imported";
+    case "DownloadFailure":
+    case "downloadFailure":
+      return "a download failed and was aborted";
+    case "Grab":
+      return "a release was grabbed and sent to the download client";
+    case "Health":
+    case "HealthIssue":
+      return "a health check issue was reported";
+    case "Test":
+      return "a test notification was received";
+    default:
+      return `${e.eventType} event received`;
+  }
+}
+
 export default async function ActivityPage() {
   const user = await requireUser();
   const configuredServices = getConfiguredServiceIds();
@@ -56,9 +105,12 @@ export default async function ActivityPage() {
           <div className="absolute top-1.5 bottom-1.5 left-[5px] w-px bg-border" />
           {feed.map((entry) => {
             const accent = serviceAccent(entry.data.service);
-            const kind = entry.kind === "request" ? entry.data.status.toUpperCase() : entry.data.eventType.toUpperCase();
+            const kind =
+              entry.kind === "request"
+                ? entry.data.status.toUpperCase()
+                : (EVENT_LABELS[entry.data.eventType] ?? entry.data.eventType).toUpperCase();
             const message =
-              entry.kind === "request" ? describeRequest(entry.data) : `${entry.data.eventType} event received`;
+              entry.kind === "request" ? describeRequest(entry.data) : describeEvent(entry.data);
             return (
               <div key={`${entry.kind}-${entry.data.id}`} className="relative pb-5">
                 <span

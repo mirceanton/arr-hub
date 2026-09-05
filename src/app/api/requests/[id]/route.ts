@@ -17,6 +17,20 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  // The requests row is about to disappear — record enough in service_events for the
+  // Activity feed to still show this deletion happened, and by whom.
+  await repo.createServiceEvent({
+    service: target.service,
+    eventType: "RequestDeleted",
+    rawPayload: JSON.stringify({
+      title: target.title,
+      mediaType: target.mediaType,
+      wasStatus: target.status,
+      deletedByName: user.displayName,
+      deletedBySelf: isOwner,
+    }),
+  });
+
   await repo.deleteRequest(id);
   return new NextResponse(null, { status: 204 });
 }
