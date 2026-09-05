@@ -16,14 +16,24 @@ const STATUS_STYLE: Record<RequestStatus, { color: string; bg: string }> = {
 
 export type RequestRow = RequestRecord & { requesterName?: string };
 
+export interface QueueProgress {
+  /** 0-100, or null when the underlying service didn't report a size. */
+  progress: number | null;
+  status: string;
+  timeLeft: string | null;
+}
+
 export function RequestsClient({
   initialRequests,
   showRequester = false,
   emptyMessage = "You haven't requested anything yet — try the Search page.",
+  queueByTitle,
 }: {
   initialRequests: RequestRow[];
   showRequester?: boolean;
   emptyMessage?: string;
+  /** Keyed by request title, matched against the download queue — only meaningful for "approved" requests. */
+  queueByTitle?: Record<string, QueueProgress>;
 }) {
   const [requests, setRequests] = useState<RequestRow[]>(initialRequests);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -66,6 +76,7 @@ export function RequestsClient({
         <TableBody>
           {requests.map((r) => {
             const status = STATUS_STYLE[r.status];
+            const progress = r.status === "approved" ? queueByTitle?.[r.title] : undefined;
             return (
               <TableRow key={r.id}>
                 <TableCell className="max-w-64 truncate font-medium">{r.title}</TableCell>
@@ -83,12 +94,27 @@ export function RequestsClient({
                   {r.requestedAt.toLocaleDateString()}
                 </TableCell>
                 <TableCell className="text-right">
-                  <span
-                    className="inline-flex w-fit items-center gap-1 rounded-md px-2.5 py-0.5 text-[11px] font-semibold capitalize"
-                    style={{ color: status.color, background: status.bg }}
-                  >
-                    {r.status}
-                  </span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span
+                      className="inline-flex w-fit items-center gap-1 rounded-md px-2.5 py-0.5 text-[11px] font-semibold capitalize"
+                      style={{ color: status.color, background: status.bg }}
+                    >
+                      {r.status}
+                    </span>
+                    {progress && (
+                      <div className="flex w-32 items-center gap-1.5">
+                        <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/[.08]">
+                          <div
+                            className="h-full rounded-full bg-[#3b82f6]"
+                            style={{ width: progress.progress !== null ? `${progress.progress}%` : "100%" }}
+                          />
+                        </div>
+                        <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
+                          {progress.progress !== null ? `${progress.progress}%` : progress.status.toLowerCase()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <button
